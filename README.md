@@ -1,2 +1,2 @@
-# antechamber
-A rust thin client for seamless virtual desktop with proxmox
+# Antechamber
+A rust thin client for seamless virtual desktop with proxmox.
