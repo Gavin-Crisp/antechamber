@@ -1,0 +1,19 @@
+[package]
+name = "antechamber"
+publish = false
+version = "0.1.0"
+edition = "2024"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+complexity = "deny"
+nursery = "deny"
+pedantic = "deny"
+style = "deny"
+unwrap_used = "deny"
+cargo_common_metadata = "deny"
+
+[dependencies]
+iced = "0.14.0"
