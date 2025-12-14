@@ -1,3 +1,4 @@
+mod connect;
 mod login;
 
 use iced::{Element, Task};
@@ -9,11 +10,13 @@ fn main() -> iced::Result {
 #[derive(Debug)]
 enum State {
     Login(login::State),
+    Connect(connect::State),
 }
 
 #[derive(Debug)]
 enum Message {
     Login(login::Message),
+    Connect(connect::Message),
 }
 
 impl State {
@@ -26,19 +29,33 @@ impl State {
                     Task::none()
                 }
             }
+            Message::Connect(message) => {
+                if let Self::Connect(state) = self {
+                    match state.update(message) {
+                        connect::Action::Logout => {
+                            *self = Self::Login(login::State::default());
+                            Task::none()
+                        }
+                        connect::Action::Run(task) => task.map(Message::Connect),
+                    }
+                } else {
+                    Task::none()
+                }
+            }
         }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
         match self {
             Self::Login(state) => state.view().map(Message::Login),
+            Self::Connect(state) => state.view().map(Message::Connect),
         }
-        // .explain(color!(0xcc_cc_cc))
+        .explain(iced::color!(0xcc_cc_cc))
     }
 }
 
 impl Default for State {
     fn default() -> Self {
-        Self::Login(login::State::default())
+        Self::Connect(connect::State::default())
     }
 }
