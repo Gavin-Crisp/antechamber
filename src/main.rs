@@ -24,7 +24,13 @@ impl State {
         match message {
             Message::Login(message) => {
                 if let Self::Login(state) = self {
-                    state.update(message).map(Message::Login)
+                    match state.update(message) {
+                        login::Action::Login => {
+                            *self = Self::Connect(connect::State::default());
+                            Task::none()
+                        }
+                        login::Action::Run(task) => task.map(Message::Login),
+                    }
                 } else {
                     Task::none()
                 }
@@ -56,6 +62,6 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::Connect(connect::State::default())
+        Self::Login(login::State::default())
     }
 }

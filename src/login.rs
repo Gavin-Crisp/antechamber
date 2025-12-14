@@ -1,47 +1,86 @@
-mod password_input;
-
 use iced::{
-    alignment::Horizontal, widget::{center, column, text_input},
-    Element,
+    alignment::Horizontal, widget::{center, column, container, mouse_area, row, svg, text_input, Svg}, Element, Fill,
+    Shrink,
     Task,
 };
 
-#[derive(Debug, Default)]
+const OPEN_SVG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/eye.svg");
+const CLOSED_SVG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/eye-off.svg");
+
+#[derive(Debug)]
 pub struct State {
     username: String,
-    password: password_input::State,
+    password: String,
+    secure_password: bool,
 }
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    UpdateUsername(String),
-    Password(password_input::Message),
+    Username(String),
+    Password(String),
+    ShowPassword,
+    HidePassword,
+    Submit,
+}
+
+#[derive(Debug)]
+pub enum Action {
+    Login,
+    Run(Task<Message>),
 }
 
 impl State {
-    pub fn update(&mut self, message: Message) -> Task<Message> {
+    pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::UpdateUsername(username) => self.username = username,
-            Message::Password(password_input::Message::Submit) => {
-                // TODO: replace with attempt login.
-                self.password.update(password_input::Message::Clear);
+            Message::Username(username) => self.username = username,
+            Message::Password(password) => self.password = password,
+            Message::ShowPassword => self.secure_password = false,
+            Message::HidePassword => self.secure_password = true,
+            Message::Submit => {
+                // TODO: replace with attempt login
+                return Action::Login;
             }
-            Message::Password(message) => self.password.update(message),
         }
 
-        Task::none()
+        Action::Run(Task::none())
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        let username_box = text_input("Username", &self.username).on_input(Message::UpdateUsername);
-        let password_box = self.password.view().map(Message::Password);
+        let username_input = text_input("Username", &self.username).on_input(Message::Username);
+        let password_input = text_input("Password", &self.password)
+            .on_input(Message::Password)
+            .on_submit(Message::Submit)
+            .secure(self.secure_password);
 
-        let input_box = column![username_box, password_box]
-            .spacing(10)
-            .align_x(Horizontal::Center)
-            .width(300)
-            .padding(10);
+        let eye_svg: Svg = svg(if self.secure_password {
+            OPEN_SVG_PATH
+        } else {
+            CLOSED_SVG_PATH
+        });
+        let show_button = mouse_area(container(eye_svg).center_x(35).center_y(Fill).padding(5))
+            .on_press(Message::ShowPassword)
+            .on_release(Message::HidePassword);
+
+        let input_box = column![
+            username_input,
+            row![password_input, show_button].height(Shrink)
+        ]
+        .padding(10)
+        .spacing(10)
+        .align_x(Horizontal::Center)
+        .width(300)
+        .padding(10);
 
         center(input_box).into()
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            username: String::new(),
+            password: String::new(),
+            secure_password: true,
+        }
     }
 }
