@@ -17,6 +17,13 @@ pub struct Guest {
     pub name: String,
     pub vmid: u32,
     pub node: String,
+    pub engine: Engine,
+}
+
+#[derive(Debug)]
+pub enum Engine {
+    Qemu,
+    Lxc,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +80,7 @@ impl Default for State {
                     name: format!("Guest{i}"),
                     vmid: 100 + i,
                     node: "N1".to_owned(),
+                    engine: Engine::Qemu,
                 })
                 .collect(),
         )
