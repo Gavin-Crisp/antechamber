@@ -1,10 +1,16 @@
 mod connect;
 mod login;
 
-use iced::{Element, Task};
+use iced::{
+    keyboard::{self, key::Named, Key}, widget::operation, Element,
+    Subscription,
+    Task,
+};
 
 fn main() -> iced::Result {
-    iced::application(State::default, State::update, State::view).run()
+    iced::application(State::default, State::update, State::view)
+        .subscription(State::subscription)
+        .run()
 }
 
 #[derive(Debug)]
@@ -17,9 +23,15 @@ enum State {
 enum Message {
     Login(login::Message),
     Connect(connect::Message),
+    Event(keyboard::Event),
 }
 
 impl State {
+    #[allow(clippy::unused_self)]
+    pub fn subscription(&self) -> Subscription<Message> {
+        keyboard::listen().map(Message::Event)
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Login(message) => {
@@ -48,6 +60,22 @@ impl State {
                     Task::none()
                 }
             }
+            Message::Event(event) => {
+                if let keyboard::Event::KeyPressed {
+                    key: Key::Named(Named::Tab),
+                    modifiers,
+                    ..
+                } = event
+                {
+                    if modifiers.shift() {
+                        operation::focus_previous()
+                    } else {
+                        operation::focus_next()
+                    }
+                } else {
+                    Task::none()
+                }
+            }
         }
     }
 
@@ -62,6 +90,6 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::Connect(connect::State::default())
+        Self::Login(login::State::default())
     }
 }
