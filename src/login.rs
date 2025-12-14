@@ -1,7 +1,11 @@
 use iced::{
-    alignment::Horizontal, widget::{center, column, container, mouse_area, row, svg, text_input, Svg}, Element, Fill,
+    alignment::Horizontal,
+    widget::{center, column, container, mouse_area, row, svg, text_input, Svg},
+    Element,
+    Fill,
     Shrink,
     Task,
+    mouse::Interaction
 };
 
 const OPEN_SVG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/eye.svg");
@@ -59,7 +63,8 @@ impl State {
         });
         let show_button = mouse_area(container(eye_svg).center_x(35).center_y(Fill).padding(5))
             .on_press(Message::ShowPassword)
-            .on_release(Message::HidePassword);
+            .on_release(Message::HidePassword)
+            .interaction(Interaction::Pointer);
 
         let input_box = column![
             username_input,
