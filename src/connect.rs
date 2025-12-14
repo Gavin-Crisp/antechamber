@@ -1,15 +1,23 @@
 use iced::{
-    alignment::Horizontal, widget::{button, center, column, keyed_column},
+    alignment::Horizontal, widget::{
+        button, center, column, keyed_column, scrollable,
+        scrollable::{Direction, Scrollbar},
+    },
     Element,
     Task,
 };
 
 #[derive(Debug)]
 pub struct State {
-    hosts: Vec<Host>,
+    guests: Vec<Guest>,
 }
 
-type Host = String;
+#[derive(Debug)]
+pub struct Guest {
+    pub name: String,
+    pub vmid: u32,
+    pub node: String,
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -24,8 +32,8 @@ pub enum Action {
 }
 
 impl State {
-    pub const fn new(hosts: Vec<Host>) -> Self {
-        Self { hosts }
+    pub const fn new(hosts: Vec<Guest>) -> Self {
+        Self { guests: hosts }
     }
 
     #[allow(clippy::needless_pass_by_ref_mut)]
@@ -42,12 +50,14 @@ impl State {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        let hosts = keyed_column(
-            self.hosts
+        let hosts = scrollable(keyed_column(
+            self.guests
                 .iter()
                 .enumerate()
-                .map(|(id, host)| (id, view_host(id, host))),
-        );
+                .map(|(id, host)| (id, view_guest(id, host))),
+        ))
+        .height(150)
+        .direction(Direction::Vertical(Scrollbar::hidden()));
 
         let logout_button = button("Logout").on_press(Message::Logout);
 
@@ -57,12 +67,20 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::new(vec!["Test1".to_owned(), "Test2".to_owned()])
+        Self::new(
+            (0..20)
+                .map(|i| Guest {
+                    name: format!("Guest{i}"),
+                    vmid: 100 + i,
+                    node: "N1".to_owned(),
+                })
+                .collect(),
+        )
     }
 }
 
-fn view_host(key: usize, name: &Host) -> Element<'_, Message> {
-    button(name.as_str())
+fn view_guest(key: usize, guest: &Guest) -> Element<'_, Message> {
+    button(guest.name.as_str())
         .on_press(Message::ConnectHost(key))
         .padding(10)
         .into()

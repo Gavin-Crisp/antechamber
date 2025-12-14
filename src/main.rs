@@ -62,6 +62,6 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::Login(login::State::default())
+        Self::Connect(connect::State::default())
     }
 }
