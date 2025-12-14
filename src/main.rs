@@ -2,7 +2,8 @@ mod connect;
 mod login;
 
 use iced::{
-    keyboard::{self, key::Named, Key}, widget::operation, Element,
+    event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
+    Element,
     Subscription,
     Task,
 };
@@ -23,13 +24,33 @@ enum State {
 enum Message {
     Login(login::Message),
     Connect(connect::Message),
-    Event(keyboard::Event),
+    FocusNext,
+    FocusPrev,
 }
 
 impl State {
     #[allow(clippy::unused_self)]
     pub fn subscription(&self) -> Subscription<Message> {
-        keyboard::listen().map(Message::Event)
+        listen_with(|event, status, _id| {
+            if status == Status::Captured {
+                return None;
+            }
+
+            let event::Event::Keyboard(keyboard::Event::KeyPressed {
+                key: Key::Named(Named::Tab),
+                modifiers,
+                ..
+            }) = event
+            else {
+                return None;
+            };
+
+            if modifiers.shift() {
+                Some(Message::FocusPrev)
+            } else {
+                Some(Message::FocusNext)
+            }
+        })
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -61,22 +82,8 @@ impl State {
                     Task::none()
                 }
             }
-            Message::Event(event) => {
-                if let keyboard::Event::KeyPressed {
-                    key: Key::Named(Named::Tab),
-                    modifiers,
-                    ..
-                } = event
-                {
-                    if modifiers.shift() {
-                        operation::focus_previous()
-                    } else {
-                        operation::focus_next()
-                    }
-                } else {
-                    Task::none()
-                }
-            }
+            Message::FocusNext => operation::focus_next(),
+            Message::FocusPrev => operation::focus_previous(),
         }
     }
 
