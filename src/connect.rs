@@ -9,10 +9,10 @@ use iced::{
 
 #[derive(Debug)]
 pub struct State {
-    guests: Vec<Guest>,
+    guests: Option<Vec<Guest>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Guest {
     pub name: String,
     pub vmid: u32,
@@ -20,7 +20,7 @@ pub struct Guest {
     pub engine: Engine,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Engine {
     Qemu,
     Lxc,
@@ -28,6 +28,7 @@ pub enum Engine {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    GetGuests(Vec<Guest>),
     ConnectHost(usize),
     Logout,
 }
@@ -39,15 +40,15 @@ pub enum Action {
 }
 
 impl State {
-    pub const fn new(hosts: Vec<Guest>) -> Self {
-        Self { guests: hosts }
-    }
-
     #[allow(clippy::needless_pass_by_ref_mut)]
     #[allow(clippy::needless_pass_by_value)]
     #[allow(clippy::unused_self)]
     pub fn update(&mut self, message: Message) -> Action {
         match message {
+            Message::GetGuests(guests) => {
+                self.guests = Some(guests);
+                Action::Run(Task::none())
+            }
             Message::ConnectHost(_index) => {
                 // TODO: Replace with attempt connection
                 Action::Run(Task::none())
@@ -57,8 +58,12 @@ impl State {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        let Some(guests) = &self.guests else {
+            return center("Getting guests...").into();
+        };
+
         let hosts = scrollable(keyed_column(
-            self.guests
+            guests
                 .iter()
                 .enumerate()
                 .map(|(id, host)| (id, view_guest(id, host))),
@@ -74,16 +79,19 @@ impl State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::new(
-            (0..20)
-                .map(|i| Guest {
-                    name: format!("Guest{i}"),
-                    vmid: 100 + i,
-                    node: "N1".to_owned(),
-                    engine: Engine::Qemu,
-                })
-                .collect(),
-        )
+        // TODO: Change to derive once api added
+        Self {
+            guests: Some(
+                (0..20)
+                    .map(|i| Guest {
+                        name: format!("Guest{i}"),
+                        vmid: 100 + i,
+                        node: "N1".to_owned(),
+                        engine: Engine::Qemu,
+                    })
+                    .collect(),
+            ),
+        }
     }
 }
 

@@ -39,6 +39,7 @@ impl State {
                     match state.update(message) {
                         login::Action::Login => {
                             *self = Self::Connect(connect::State::default());
+                            // TODO: Replace with get guests request
                             Task::none()
                         }
                         login::Action::Run(task) => task.map(Message::Login),
