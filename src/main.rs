@@ -59,9 +59,9 @@ impl State {
                 if let Self::Login(state) = self {
                     match state.update(message) {
                         login::Action::Login => {
-                            *self = Self::Connect(connect::State::default());
-                            // TODO: Replace with get guests request
-                            Task::none()
+                            let (state, task) = connect::State::new();
+                            *self = Self::Connect(state);
+                            task.map(Message::Connect)
                         }
                         login::Action::Run(task) => task.map(Message::Login),
                     }

@@ -40,6 +40,26 @@ pub enum Action {
 }
 
 impl State {
+    pub fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                // TODO: Replace with None once api calls added
+                guests: Some(
+                    (0..20)
+                        .map(|i| Guest {
+                            name: format!("Guest{i}"),
+                            vmid: 100 + i,
+                            node: "N1".to_owned(),
+                            engine: Engine::Qemu,
+                        })
+                        .collect(),
+                ),
+            },
+            // TODO: Replace with fetch vms
+            Task::none(),
+        )
+    }
+
     #[allow(clippy::needless_pass_by_ref_mut)]
     #[allow(clippy::needless_pass_by_value)]
     #[allow(clippy::unused_self)]
@@ -74,24 +94,6 @@ impl State {
         let logout_button = button("Logout").on_press(Message::Logout);
 
         center(column![hosts, logout_button].align_x(Horizontal::Center)).into()
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        // TODO: Change to derive once api added
-        Self {
-            guests: Some(
-                (0..20)
-                    .map(|i| Guest {
-                        name: format!("Guest{i}"),
-                        vmid: 100 + i,
-                        node: "N1".to_owned(),
-                        engine: Engine::Qemu,
-                    })
-                    .collect(),
-            ),
-        }
     }
 }
 
