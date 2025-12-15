@@ -20,7 +20,7 @@ enum State {
     Connect(connect::State),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum Message {
     Login(login::Message),
     Connect(connect::Message),

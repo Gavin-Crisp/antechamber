@@ -16,4 +16,4 @@ unwrap_used = "deny"
 cargo_common_metadata = "deny"
 
 [dependencies]
-iced = {version = "0.14.0", features = ["default", "debug", "svg"]}
+iced = {version = "0.14.0", features = ["default", "debug", "svg", "time-travel"]}

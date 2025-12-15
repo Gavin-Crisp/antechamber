@@ -2,7 +2,7 @@ use iced::{
     alignment::Horizontal, widget::{
         button, center, column, keyed_column, scrollable,
         scrollable::{Direction, Scrollbar},
-    },
+    }, Alignment,
     Element,
     Task,
 };
@@ -26,7 +26,7 @@ pub enum Engine {
     Lxc,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum Message {
     GetGuests(Vec<Guest>),
     ConnectHost(usize),
