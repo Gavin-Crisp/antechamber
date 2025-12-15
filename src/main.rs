@@ -3,6 +3,7 @@ mod login;
 
 use iced::{
     event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
+    window::{Level, Settings},
     Element,
     Subscription,
     Task,
@@ -11,6 +12,19 @@ use iced::{
 fn main() -> iced::Result {
     iced::application(State::default, State::update, State::view)
         .subscription(State::subscription)
+        .title("Antechamber")
+        .window(Settings {
+            // Not strictly needed for intended use case, but I'll probably set one eventually
+            icon: None,
+            // TODO: True in intended use case, makes dev annoying
+            fullscreen: false,
+            closeable: false,
+            minimizable: false,
+            // TODO: AlwaysOnTop in intended use case, makes dev annoying
+            level: Level::Normal,
+            decorations: false,
+            ..Settings::default()
+        })
         .run()
 }
 
