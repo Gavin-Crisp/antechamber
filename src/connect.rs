@@ -82,12 +82,15 @@ impl State {
             return center("Getting guests...").into();
         };
 
-        let hosts = scrollable(keyed_column(
-            guests
-                .iter()
-                .enumerate()
-                .map(|(id, host)| (id, view_guest(id, host))),
-        ))
+        let hosts = scrollable(
+            keyed_column(
+                guests
+                    .iter()
+                    .enumerate()
+                    .map(|(id, host)| (id, view_guest(id, host))),
+            )
+            .align_items(Alignment::Center),
+        )
         .height(150)
         .direction(Direction::Vertical(Scrollbar::hidden()));
 
