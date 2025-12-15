@@ -1,10 +1,14 @@
 use iced::{
-    alignment::Horizontal, widget::{
+    event::listen_with,
+    alignment::Horizontal,
+    widget::{
         button, center, column, keyed_column, scrollable,
         scrollable::{Direction, Scrollbar},
-    }, Alignment,
+    },
+    Alignment,
     Element,
-    Task,
+    Subscription,
+    Task
 };
 
 #[derive(Debug)]
@@ -58,6 +62,12 @@ impl State {
             // TODO: Replace with fetch vms
             Task::none(),
         )
+    }
+
+    #[allow(clippy::unused_self)]
+    pub fn subscription(&self) -> Subscription<Message> {
+        // TODO: use this subscription to keepalive auth session
+        listen_with(|_, _, _| None)
     }
 
     #[allow(clippy::needless_pass_by_ref_mut)]

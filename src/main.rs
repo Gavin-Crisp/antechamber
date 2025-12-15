@@ -43,9 +43,14 @@ enum Message {
 }
 
 impl State {
-    #[allow(clippy::unused_self)]
     pub fn subscription(&self) -> Subscription<Message> {
-        listen_with(|event, status, _id| {
+        let screen_sub = if let Self::Connect(state) = self {
+            Some(state.subscription().map(Message::Connect))
+        } else {
+            None
+        };
+
+        let focus_sub = listen_with(|event, status, _id| {
             if status == Status::Captured {
                 return None;
             }
@@ -64,7 +69,13 @@ impl State {
             } else {
                 Some(Message::FocusNext)
             }
-        })
+        });
+
+        if let Some(screen_sub) = screen_sub {
+            Subscription::batch([screen_sub, focus_sub])
+        } else {
+            focus_sub
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
