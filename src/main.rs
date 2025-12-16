@@ -9,6 +9,9 @@ use iced::{
     Task,
 };
 
+#[cfg(all(feature = "dev_mode", not(debug_assertions)))]
+compile_error!("Release build should not include debug features");
+
 fn main() -> iced::Result {
     iced::application(State::default, State::update, State::view)
         .subscription(State::subscription)
@@ -16,13 +19,14 @@ fn main() -> iced::Result {
         .window(Settings {
             // Not strictly needed for intended use case, but I'll probably set one eventually
             icon: None,
-            // TODO: True in intended use case, makes dev annoying
-            fullscreen: false,
-            closeable: false,
+            fullscreen: !cfg!(feature = "dev_mode"),
             minimizable: false,
-            // TODO: AlwaysOnTop in intended use case, makes dev annoying
-            level: Level::Normal,
-            decorations: false,
+            level: if cfg!(feature = "dev_mode") {
+                Level::Normal
+            } else {
+                Level::AlwaysOnTop
+            },
+            decorations: true,
             ..Settings::default()
         })
         .run()
@@ -113,11 +117,16 @@ impl State {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        match self {
+        let screen = match self {
             Self::Login(state) => state.view().map(Message::Login),
             Self::Connect(state) => state.view().map(Message::Connect),
+        };
+
+        if cfg!(feature = "dev_mode") {
+            screen.explain(iced::color!(0xcc_cc_cc))
+        } else {
+            screen
         }
-        .explain(iced::color!(0xcc_cc_cc))
     }
 }
 
