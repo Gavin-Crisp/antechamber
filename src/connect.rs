@@ -1,15 +1,10 @@
 use iced::{
-    event::listen_with,
-    alignment::Horizontal,
-    widget::{
-        button, center, column, keyed_column, scrollable,
-        scrollable::{Direction, Scrollbar},
-    },
-    Alignment,
+    alignment::Horizontal, event::listen_with, widget::{button, center, column, scrollable, text}, Center,
     Element,
     Subscription,
-    Task
+    Task,
 };
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct State {
@@ -28,6 +23,15 @@ pub struct Guest {
 pub enum Engine {
     Qemu,
     Lxc,
+}
+
+impl Display for Engine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            Self::Qemu => write!(f, "Qemu"),
+            Self::Lxc => write!(f, "LXC"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -49,7 +53,7 @@ impl State {
             Self {
                 // TODO: Replace with None once api calls added
                 guests: Some(
-                    (0..20)
+                    (0..6)
                         .map(|i| Guest {
                             name: format!("Guest{i}"),
                             vmid: 100 + i,
@@ -67,6 +71,7 @@ impl State {
     #[allow(clippy::unused_self)]
     pub fn subscription(&self) -> Subscription<Message> {
         // TODO: use this subscription to keepalive auth session
+        // This is probably overkill
         listen_with(|_, _, _| None)
     }
 
@@ -92,17 +97,19 @@ impl State {
             return center("Getting guests...").into();
         };
 
-        let hosts = scrollable(
-            keyed_column(
-                guests
-                    .iter()
-                    .enumerate()
-                    .map(|(id, host)| (id, view_guest(id, host))),
-            )
-            .align_items(Alignment::Center),
+        let hosts_column = column(
+            guests
+                .iter()
+                .enumerate()
+                .map(|(id, host)| view_guest(id, host)),
         )
-        .height(150)
-        .direction(Direction::Vertical(Scrollbar::hidden()));
+        .align_x(Center);
+
+        let hosts: Element<'_, Message> = if guests.len() > 3 {
+            scrollable(hosts_column).height(180).into()
+        } else {
+            hosts_column.into()
+        };
 
         let logout_button = button("Logout").on_press(Message::Logout);
 
@@ -111,8 +118,13 @@ impl State {
 }
 
 fn view_guest(key: usize, guest: &Guest) -> Element<'_, Message> {
-    button(guest.name.as_str())
-        .on_press(Message::ConnectHost(key))
-        .padding(10)
-        .into()
+    button(column![
+        text(guest.name.clone()),
+        text(guest.engine.to_string()).size(12.5)
+    ])
+    .width(170)
+    .height(60)
+    .padding(10)
+    .on_press(Message::ConnectHost(key))
+    .into()
 }
