@@ -43,7 +43,7 @@ pub enum Message {
     Auth { ticket: String, csrf: String },
     GetGuests(Vec<Guest>),
     SpiceConfig(SpiceConfig),
-    ConnectHost(usize),
+    ConnectHost(u32),
     Logout,
 }
 
@@ -95,7 +95,7 @@ impl State {
             Message::SpiceConfig(_spice_config) => {
                 // TODO: start remote viewer with config
             }
-            Message::ConnectHost(_index) => {
+            Message::ConnectHost(_vmid) => {
                 // TODO: Replace with attempt connection
                 return Action::Run(Task::done(Message::SpiceConfig(())));
             }
@@ -110,13 +110,7 @@ impl State {
             return center("Getting guests...").into();
         };
 
-        let hosts_column = column(
-            guests
-                .iter()
-                .enumerate()
-                .map(|(id, host)| view_guest(id, host)),
-        )
-        .align_x(Center);
+        let hosts_column = column(guests.iter().map(view_guest)).align_x(Center);
 
         let hosts: Element<'_, Message> = if guests.len() > 3 {
             scrollable(hosts_column).height(180).into()
@@ -130,7 +124,7 @@ impl State {
     }
 }
 
-fn view_guest(key: usize, guest: &Guest) -> Element<'_, Message> {
+fn view_guest(guest: &Guest) -> Element<'_, Message> {
     button(column![
         text(guest.name.clone()),
         text(guest.engine.to_string()).size(12.5)
@@ -138,6 +132,6 @@ fn view_guest(key: usize, guest: &Guest) -> Element<'_, Message> {
     .width(170)
     .height(60)
     .padding(10)
-    .on_press(Message::ConnectHost(key))
+    .on_press(Message::ConnectHost(guest.vmid))
     .into()
 }
