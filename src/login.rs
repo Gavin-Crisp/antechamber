@@ -1,3 +1,4 @@
+use crate::proxmox::Auth;
 use iced::{
     alignment::Horizontal, mouse::Interaction, widget::{center, column, container, mouse_area, row, svg, text_input, Svg}, Element,
     Fill,
@@ -22,14 +23,12 @@ pub enum Message {
     ShowPassword,
     HidePassword,
     Submit,
-    // TODO: replace with struct
-    Auth { ticket: String, csrf: String },
+    Auth(Auth),
 }
 
 #[derive(Debug)]
 pub enum Action {
-    // TODO: replace with struct
-    Login { ticket: String, csrf: String },
+    Login(Auth),
     Run(Task<Message>),
 }
 
@@ -42,13 +41,13 @@ impl State {
             Message::HidePassword => self.secure_password = true,
             Message::Submit => {
                 // TODO: replace with attempt login
-                return Action::Run(Task::done(Message::Auth {
+                return Action::Run(Task::done(Message::Auth(Auth {
                     ticket: String::new(),
                     csrf: String::new(),
-                }));
+                })));
             }
-            Message::Auth { ticket, csrf } => {
-                return Action::Login { ticket, csrf };
+            Message::Auth(auth) => {
+                return Action::Login(auth);
             }
         }
 

@@ -1,5 +1,6 @@
 mod connect;
 mod login;
+mod proxmox;
 
 use iced::{
     event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
@@ -87,8 +88,8 @@ impl State {
             Message::Login(message) => {
                 if let Self::Login(state) = self {
                     match state.update(message) {
-                        login::Action::Login { ticket, csrf } => {
-                            let (state, task) = connect::State::new(ticket, csrf);
+                        login::Action::Login(auth) => {
+                            let (state, task) = connect::State::new(auth);
                             *self = Self::Connect(state);
                             task.map(Message::Connect)
                         }

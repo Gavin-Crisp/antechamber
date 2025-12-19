@@ -1,54 +1,25 @@
+use crate::proxmox::{Auth, Engine, Guest, SpiceConfig};
 use iced::{
     alignment::Horizontal, event::listen_with, widget::{button, center, column, scrollable, text}, Center,
     Element,
     Subscription,
     Task,
 };
-use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct State {
-    // TODO: replace with struct
-    ticket: String,
-    csrf: String,
+    auth: Auth,
     guests: Option<Vec<Guest>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct Guest {
-    pub name: String,
-    pub vmid: u32,
-    pub node: String,
-    pub engine: Engine,
-}
-
-#[derive(Clone, Debug)]
-pub enum Engine {
-    Qemu,
-    Lxc,
-}
-
-impl Display for Engine {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        match self {
-            Self::Qemu => write!(f, "Qemu"),
-            Self::Lxc => write!(f, "LXC"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub enum Message {
-    // TODO: replace with struct
-    Auth { ticket: String, csrf: String },
+    Auth(Auth),
     GetGuests(Vec<Guest>),
     SpiceConfig(SpiceConfig),
     ConnectHost(u32),
     Logout,
 }
-
-// TODO: struct
-type SpiceConfig = ();
 
 #[derive(Debug)]
 pub enum Action {
@@ -57,13 +28,9 @@ pub enum Action {
 }
 
 impl State {
-    pub fn new(ticket: String, csrf: String) -> (Self, Task<Message>) {
+    pub fn new(auth: Auth) -> (Self, Task<Message>) {
         (
-            Self {
-                ticket,
-                csrf,
-                guests: None,
-            },
+            Self { auth, guests: None },
             // TODO: Replace with api call
             Task::done(Message::GetGuests(
                 (0..6)
@@ -87,17 +54,20 @@ impl State {
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::Auth { ticket, csrf } => {
-                self.ticket = ticket;
-                self.csrf = csrf;
-            }
+            Message::Auth(auth) => self.auth = auth,
             Message::GetGuests(guests) => self.guests = Some(guests),
             Message::SpiceConfig(_spice_config) => {
                 // TODO: start remote viewer with config
             }
             Message::ConnectHost(_vmid) => {
                 // TODO: Replace with attempt connection
-                return Action::Run(Task::done(Message::SpiceConfig(())));
+                return Action::Run(Task::done(Message::SpiceConfig(SpiceConfig {
+                    host: String::new(),
+                    password: String::new(),
+                    proxy: String::new(),
+                    tls_port: 0,
+                    conn_type: String::new(),
+                })));
             }
             Message::Logout => return Action::Logout,
         }
