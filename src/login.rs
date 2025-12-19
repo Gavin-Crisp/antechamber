@@ -1,11 +1,8 @@
 use iced::{
-    alignment::Horizontal,
-    widget::{center, column, container, mouse_area, row, svg, text_input, Svg},
-    Element,
+    alignment::Horizontal, mouse::Interaction, widget::{center, column, container, mouse_area, row, svg, text_input, Svg}, Element,
     Fill,
     Shrink,
     Task,
-    mouse::Interaction
 };
 
 const OPEN_SVG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/eye.svg");
@@ -25,11 +22,14 @@ pub enum Message {
     ShowPassword,
     HidePassword,
     Submit,
+    // TODO: replace with struct
+    Auth { ticket: String, csrf: String },
 }
 
 #[derive(Debug)]
 pub enum Action {
-    Login,
+    // TODO: replace with struct
+    Login { ticket: String, csrf: String },
     Run(Task<Message>),
 }
 
@@ -42,7 +42,13 @@ impl State {
             Message::HidePassword => self.secure_password = true,
             Message::Submit => {
                 // TODO: replace with attempt login
-                return Action::Login;
+                return Action::Run(Task::done(Message::Auth {
+                    ticket: String::new(),
+                    csrf: String::new(),
+                }));
+            }
+            Message::Auth { ticket, csrf } => {
+                return Action::Login { ticket, csrf };
             }
         }
 

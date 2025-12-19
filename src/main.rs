@@ -87,8 +87,8 @@ impl State {
             Message::Login(message) => {
                 if let Self::Login(state) = self {
                     match state.update(message) {
-                        login::Action::Login => {
-                            let (state, task) = connect::State::new();
+                        login::Action::Login { ticket, csrf } => {
+                            let (state, task) = connect::State::new(ticket, csrf);
                             *self = Self::Connect(state);
                             task.map(Message::Connect)
                         }

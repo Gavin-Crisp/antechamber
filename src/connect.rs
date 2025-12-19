@@ -8,6 +8,9 @@ use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct State {
+    // TODO: replace with struct
+    ticket: String,
+    csrf: String,
     guests: Option<Vec<Guest>>,
 }
 
@@ -36,10 +39,16 @@ impl Display for Engine {
 
 #[derive(Clone, Debug)]
 pub enum Message {
+    // TODO: replace with struct
+    Auth { ticket: String, csrf: String },
     GetGuests(Vec<Guest>),
+    SpiceConfig(SpiceConfig),
     ConnectHost(usize),
     Logout,
 }
+
+// TODO: struct
+type SpiceConfig = ();
 
 #[derive(Debug)]
 pub enum Action {
@@ -48,23 +57,24 @@ pub enum Action {
 }
 
 impl State {
-    pub fn new() -> (Self, Task<Message>) {
+    pub fn new(ticket: String, csrf: String) -> (Self, Task<Message>) {
         (
             Self {
-                // TODO: Replace with None once api calls added
-                guests: Some(
-                    (0..6)
-                        .map(|i| Guest {
-                            name: format!("Guest{i}"),
-                            vmid: 100 + i,
-                            node: "N1".to_owned(),
-                            engine: Engine::Qemu,
-                        })
-                        .collect(),
-                ),
+                ticket,
+                csrf,
+                guests: None,
             },
-            // TODO: Replace with fetch vms
-            Task::none(),
+            // TODO: Replace with api call
+            Task::done(Message::GetGuests(
+                (0..6)
+                    .map(|i| Guest {
+                        name: format!("Guest{i}"),
+                        vmid: 100 + i,
+                        node: "N1".to_owned(),
+                        engine: Engine::Qemu,
+                    })
+                    .collect(),
+            )),
         )
     }
 
@@ -75,21 +85,24 @@ impl State {
         listen_with(|_, _, _| None)
     }
 
-    #[allow(clippy::needless_pass_by_ref_mut)]
-    #[allow(clippy::needless_pass_by_value)]
-    #[allow(clippy::unused_self)]
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::GetGuests(guests) => {
-                self.guests = Some(guests);
-                Action::Run(Task::none())
+            Message::Auth { ticket, csrf } => {
+                self.ticket = ticket;
+                self.csrf = csrf;
+            }
+            Message::GetGuests(guests) => self.guests = Some(guests),
+            Message::SpiceConfig(_spice_config) => {
+                // TODO: start remote viewer with config
             }
             Message::ConnectHost(_index) => {
                 // TODO: Replace with attempt connection
-                Action::Run(Task::none())
+                return Action::Run(Task::done(Message::SpiceConfig(())));
             }
-            Message::Logout => Action::Logout,
+            Message::Logout => return Action::Logout,
         }
+
+        Action::Run(Task::none())
     }
 
     pub fn view(&self) -> Element<'_, Message> {
