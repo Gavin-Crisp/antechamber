@@ -1,4 +1,4 @@
-use crate::proxmox::{Auth, Engine, Guest, SpiceConfig};
+use crate::proxmox::{Auth, Guest, GuestKind, SpiceConfig};
 use iced::{
     alignment::Horizontal, event::listen_with, widget::{button, center, column, scrollable, text}, Center,
     Element,
@@ -38,7 +38,7 @@ impl State {
                         name: format!("Guest{i}"),
                         vmid: 100 + i,
                         node: "N1".to_owned(),
-                        engine: Engine::Qemu,
+                        kind: GuestKind::Qemu,
                     })
                     .collect(),
             )),
@@ -97,7 +97,7 @@ impl State {
 fn view_guest(guest: &Guest) -> Element<'_, Message> {
     button(column![
         text(guest.name.clone()),
-        text(guest.engine.to_string()).size(12.5)
+        text(guest.kind.to_string()).size(12.5)
     ])
     .width(170)
     .height(60)

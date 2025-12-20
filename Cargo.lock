@@ -87,6 +87,7 @@ name = "antechamber"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "serde",
 ]
 
 [[package]]
