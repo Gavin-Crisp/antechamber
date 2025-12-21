@@ -6,8 +6,8 @@ use iced::{
     Task,
 };
 
-include_svg!(OPEN_EYE, "eye.svg");
-include_svg!(CLOSED_EYE, "eye-off.svg");
+include_svg!(OPEN_EYE, "lucide/eye.svg");
+include_svg!(CLOSED_EYE, "lucide/eye-off.svg");
 
 #[derive(Debug)]
 pub struct State {

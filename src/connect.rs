@@ -9,7 +9,7 @@ use iced::{
     Task,
 };
 
-include_svg!(SETTINGS, "settings.svg");
+include_svg!(SETTINGS, "lucide/settings.svg");
 
 #[derive(Debug)]
 pub struct State {
