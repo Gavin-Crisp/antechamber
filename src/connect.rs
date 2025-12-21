@@ -1,7 +1,7 @@
 use crate::proxmox::{Auth, Guest, GuestKind, SpiceConfig};
 use iced::{
-    alignment::Horizontal, event::listen_with, widget::{button, center, column, scrollable, text}, Center,
-    Element,
+    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, text}, Center, Element, Fill,
+    Shrink,
     Subscription,
     Task,
 };
@@ -10,6 +10,7 @@ use iced::{
 pub struct State {
     auth: Auth,
     guests: Option<Vec<Guest>>,
+    modal: Option<Modal>,
 }
 
 #[derive(Clone, Debug)]
@@ -21,6 +22,9 @@ pub enum Message {
     Logout,
 }
 
+#[derive(Copy, Clone, Debug)]
+enum Modal {}
+
 #[derive(Debug)]
 pub enum Action {
     Logout,
@@ -30,7 +34,11 @@ pub enum Action {
 impl State {
     pub fn new(auth: Auth) -> (Self, Task<Message>) {
         (
-            Self { auth, guests: None },
+            Self {
+                auth,
+                guests: None,
+                modal: None,
+            },
             // TODO: Replace with api call
             Task::done(Message::GetGuests(
                 (0..6)
@@ -80,17 +88,32 @@ impl State {
             return center("Getting guests...").into();
         };
 
-        let hosts_column = column(guests.iter().map(view_guest)).align_x(Center);
-
-        let hosts: Element<'_, Message> = if guests.len() > 3 {
-            scrollable(hosts_column).height(180).into()
-        } else {
-            hosts_column.into()
-        };
+        let hosts = container(
+            scrollable(
+                column(guests.iter().map(view_guest))
+                    .align_x(Center)
+                    .spacing(4),
+            )
+            .height(240),
+        )
+        .padding([75, 20]);
 
         let logout_button = button("Logout").on_press(Message::Logout);
+        let settings_button = button("Settings");
 
-        center(column![hosts, logout_button].align_x(Horizontal::Center)).into()
+        let page = column![
+            hosts,
+            logout_button,
+            container(Option::<Element<Message>>::None).height(Fill),
+            container(settings_button).width(Fill)
+        ]
+        .width(Shrink)
+        .align_x(Horizontal::Center)
+        .padding([25, 50]);
+
+        let _modal_box = self.modal.map(|_modal| "");
+
+        page.into()
     }
 }
 
