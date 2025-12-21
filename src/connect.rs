@@ -1,10 +1,15 @@
-use crate::proxmox::{Auth, Guest, GuestKind, SpiceConfig};
+use crate::{
+    include_svg,
+    proxmox::{Auth, Guest, GuestKind, SpiceConfig},
+};
 use iced::{
-    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, text}, Center, Element, Fill,
+    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, svg, text}, Center, Element, Fill,
     Shrink,
     Subscription,
     Task,
 };
+
+include_svg!(SETTINGS, "settings.svg");
 
 #[derive(Debug)]
 pub struct State {
@@ -99,7 +104,7 @@ impl State {
         .padding([75, 20]);
 
         let logout_button = button("Logout").on_press(Message::Logout);
-        let settings_button = button("Settings");
+        let settings_button = button(svg(SETTINGS.clone())).width(Shrink);
 
         let page = column![
             hosts,

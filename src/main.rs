@@ -13,6 +13,11 @@ use iced::{
 #[cfg(all(feature = "dev_mode", not(debug_assertions)))]
 compile_error!("Release build should not include debug features");
 
+#[macro_export]
+macro_rules! include_svg {
+    ($handle:ident, $svg:expr) => {static $handle: ::std::sync::LazyLock<::iced::widget::svg::Handle> = ::std::sync::LazyLock::new(|| ::iced::widget::svg::Handle::from_memory(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/", $svg))));}
+}
+
 fn main() -> iced::Result {
     iced::application(State::default, State::update, State::view)
         .subscription(State::subscription)

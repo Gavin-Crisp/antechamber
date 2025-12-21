@@ -1,4 +1,4 @@
-use crate::proxmox::Auth;
+use crate::{include_svg, proxmox::Auth};
 use iced::{
     alignment::Horizontal, mouse::Interaction, widget::{center, column, container, mouse_area, row, svg, text_input, Svg}, Element,
     Fill,
@@ -6,8 +6,8 @@ use iced::{
     Task,
 };
 
-const OPEN_SVG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/eye.svg");
-const CLOSED_SVG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/eye-off.svg");
+include_svg!(OPEN_EYE, "eye.svg");
+include_svg!(CLOSED_EYE, "eye-off.svg");
 
 #[derive(Debug)]
 pub struct State {
@@ -62,9 +62,9 @@ impl State {
             .secure(self.secure_password);
 
         let eye_svg: Svg = svg(if self.secure_password {
-            OPEN_SVG_PATH
+            OPEN_EYE.clone()
         } else {
-            CLOSED_SVG_PATH
+            CLOSED_EYE.clone()
         });
         let show_button = mouse_area(container(eye_svg).center_x(35).center_y(Fill).padding(5))
             .on_press(Message::ShowPassword)
