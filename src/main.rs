@@ -1,7 +1,9 @@
+mod config;
 mod connect;
 mod login;
 mod proxmox;
 
+use crate::config::Config;
 use iced::{
     event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
     window::{Level, Settings},
@@ -15,11 +17,22 @@ compile_error!("Release build should not include debug features");
 
 #[macro_export]
 macro_rules! include_svg {
-    ($handle:ident, $svg:expr) => {static $handle: ::std::sync::LazyLock<::iced::widget::svg::Handle> = ::std::sync::LazyLock::new(|| ::iced::widget::svg::Handle::from_memory(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/", $svg))));}
+    ($handle:ident, $svg:expr) => {
+        static $handle: ::std::sync::LazyLock<::iced::widget::svg::Handle> =
+            ::std::sync::LazyLock::new(|| {
+                ::iced::widget::svg::Handle::from_memory(include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/",
+                    $svg
+                )))
+            });
+    };
 }
 
+const CONFIG_PATH: &str = "./config.yaml";
+
 fn main() -> iced::Result {
-    iced::application(State::default, State::update, State::view)
+    iced::application(State::new, State::update, State::view)
         .subscription(State::subscription)
         .title("Antechamber")
         .window(Settings {
@@ -39,7 +52,13 @@ fn main() -> iced::Result {
 }
 
 #[derive(Debug)]
-enum State {
+struct State {
+    config: Config,
+    screen: Screen,
+}
+
+#[derive(Debug)]
+enum Screen {
     Login(login::State),
     Connect(connect::State),
 }
@@ -53,8 +72,18 @@ enum Message {
 }
 
 impl State {
+    pub fn new() -> Self {
+        // TODO: Add error handling
+        let config = Config::load_file(CONFIG_PATH).expect("Config error handling not implemented");
+
+        Self {
+            config,
+            screen: Screen::Login(login::State::default()),
+        }
+    }
+
     pub fn subscription(&self) -> Subscription<Message> {
-        let screen_sub = if let Self::Connect(state) = self {
+        let screen_sub = if let Screen::Connect(state) = &self.screen {
             Some(state.subscription().map(Message::Connect))
         } else {
             None
@@ -91,11 +120,11 @@ impl State {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Login(message) => {
-                if let Self::Login(state) = self {
-                    match state.update(message) {
+                if let Screen::Login(state) = &mut self.screen {
+                    match state.update(message, &mut self.config) {
                         login::Action::Login(auth) => {
                             let (state, task) = connect::State::new(auth);
-                            *self = Self::Connect(state);
+                            self.screen = Screen::Connect(state);
                             task.map(Message::Connect)
                         }
                         login::Action::Run(task) => task.map(Message::Login),
@@ -105,10 +134,10 @@ impl State {
                 }
             }
             Message::Connect(message) => {
-                if let Self::Connect(state) = self {
-                    match state.update(message) {
+                if let Screen::Connect(state) = &mut self.screen {
+                    match state.update(message, &mut self.config) {
                         connect::Action::Logout => {
-                            *self = Self::Login(login::State::default());
+                            self.screen = Screen::Login(login::State::default());
                             Task::none()
                         }
                         connect::Action::Run(task) => task.map(Message::Connect),
@@ -123,9 +152,9 @@ impl State {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        let screen = match self {
-            Self::Login(state) => state.view().map(Message::Login),
-            Self::Connect(state) => state.view().map(Message::Connect),
+        let screen = match &self.screen {
+            Screen::Login(state) => state.view(&self.config).map(Message::Login),
+            Screen::Connect(state) => state.view(&self.config).map(Message::Connect),
         };
 
         if cfg!(feature = "dev_mode") {
@@ -133,11 +162,5 @@ impl State {
         } else {
             screen
         }
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::Login(login::State::default())
     }
 }

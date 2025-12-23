@@ -8,6 +8,7 @@ use iced::{
     Subscription,
     Task,
 };
+use crate::config::Config;
 
 include_svg!(SETTINGS, "lucide/settings.svg");
 
@@ -65,7 +66,7 @@ impl State {
         listen_with(|_, _, _| None)
     }
 
-    pub fn update(&mut self, message: Message) -> Action {
+    pub fn update(&mut self, message: Message, _config: &mut Config) -> Action {
         match message {
             Message::Auth(auth) => self.auth = auth,
             Message::GetGuests(guests) => self.guests = Some(guests),
@@ -88,7 +89,7 @@ impl State {
         Action::Run(Task::none())
     }
 
-    pub fn view(&self) -> Element<'_, Message> {
+    pub fn view(&self, _config: &Config) -> Element<'_, Message> {
         let Some(guests) = &self.guests else {
             return center("Getting guests...").into();
         };

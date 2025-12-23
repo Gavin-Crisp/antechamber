@@ -5,6 +5,7 @@ use iced::{
     Shrink,
     Task,
 };
+use crate::config::Config;
 
 include_svg!(OPEN_EYE, "lucide/eye.svg");
 include_svg!(CLOSED_EYE, "lucide/eye-off.svg");
@@ -33,7 +34,7 @@ pub enum Action {
 }
 
 impl State {
-    pub fn update(&mut self, message: Message) -> Action {
+    pub fn update(&mut self, message: Message, _config: &mut Config) -> Action {
         match message {
             Message::Username(username) => self.username = username,
             Message::Password(password) => self.password = password,
@@ -54,7 +55,7 @@ impl State {
         Action::Run(Task::none())
     }
 
-    pub fn view(&self) -> Element<'_, Message> {
+    pub fn view(&self, _config: &Config) -> Element<'_, Message> {
         let username_input = text_input("Username", &self.username).on_input(Message::Username);
         let password_input = text_input("Password", &self.password)
             .on_input(Message::Password)
