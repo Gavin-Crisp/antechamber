@@ -3,7 +3,7 @@ mod connect;
 mod login;
 mod proxmox;
 
-use crate::config::Config;
+use crate::config::{AuthMethod, Cluster, Config, User};
 use iced::{
     event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
     window::{Level, Settings},
@@ -74,7 +74,24 @@ enum Message {
 impl State {
     pub fn new() -> Self {
         // TODO: Add error handling
-        let config = Config::load_file(CONFIG_PATH).expect("Config error handling not implemented");
+        // let config = Config::load_file(CONFIG_PATH).expect("Config error handling not implemented");
+        let config = Config {
+            clusters: vec![Cluster {
+                name: "Cluster1".to_owned(),
+                hosts: vec![],
+                users: vec![
+                    User {
+                        name: "User1".to_owned(),
+                        auth_method: AuthMethod::Password,
+                    },
+                    User {
+                        name: "User2".to_owned(),
+                        auth_method: AuthMethod::ApiToken("PROXMOX-API-TOKEN".to_owned()),
+                    },
+                ],
+            }],
+            viewer_args: vec![],
+        };
 
         Self {
             config,
