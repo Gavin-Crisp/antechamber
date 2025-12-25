@@ -1,8 +1,10 @@
-use crate::config::{AuthMethod, Cluster, Config, User};
-use crate::{include_svg, proxmox::Auth};
-use iced::widget::{button, pick_list};
+use crate::{
+    config::{AuthMethod, Cluster, Config, User},
+    include_svg,
+    proxmox::Auth,
+};
 use iced::{
-    alignment::Horizontal, mouse::Interaction, widget::{center, column, container, mouse_area, row, svg, text_input, Svg}, Element,
+    alignment::Horizontal, mouse::Interaction, widget::{button, center, column, container, mouse_area, pick_list, row, svg, text_input, Svg}, Element,
     Fill,
     Shrink,
     Task,
@@ -10,6 +12,7 @@ use iced::{
 
 include_svg!(OPEN_EYE, "lucide/eye.svg");
 include_svg!(CLOSED_EYE, "lucide/eye-off.svg");
+include_svg!(ADD_USER, "lucide/user-plus.svg");
 
 #[derive(Debug)]
 pub struct State {
@@ -107,7 +110,7 @@ impl State {
             )
             .placeholder("Select user");
 
-            let add_user = button("Add");
+            let add_user = button(svg(ADD_USER.clone())).width(Shrink);
 
             row![user_select, add_user]
         });
