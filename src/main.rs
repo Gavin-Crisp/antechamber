@@ -146,6 +146,7 @@ impl State {
                             task.map(Message::Connect)
                         }
                         login::Action::Run(task) => task.map(Message::Login),
+                        login::Action::None => Task::none()
                     }
                 } else {
                     Task::none()
@@ -159,6 +160,7 @@ impl State {
                             Task::none()
                         }
                         connect::Action::Run(task) => task.map(Message::Connect),
+                        connect::Action::None => Task::none()
                     }
                 } else {
                     Task::none()

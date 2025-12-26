@@ -35,6 +35,7 @@ enum Modal {}
 pub enum Action {
     Logout,
     Run(Task<Message>),
+    None,
 }
 
 impl State {
@@ -86,7 +87,7 @@ impl State {
             Message::Logout => return Action::Logout,
         }
 
-        Action::Run(Task::none())
+        Action::None
     }
 
     pub fn view(&self, _config: &Config) -> Element<'_, Message> {

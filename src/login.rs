@@ -44,6 +44,7 @@ pub enum Message {
 pub enum Action {
     Login(Auth),
     Run(Task<Message>),
+    None,
 }
 
 impl State {
@@ -89,7 +90,7 @@ impl State {
             Message::Modal(message) => {
                 if let Some(state) = &mut self.modal {
                     match state.update(message) {
-                        Some(user_modal::Action::Add) => {
+                        user_modal::Action::Add => {
                             let user = self
                                 .modal
                                 .take()
@@ -109,8 +110,8 @@ impl State {
                                 // TODO: save config changes
                             }
                         }
-                        Some(user_modal::Action::Close) => self.modal = None,
-                        None => {}
+                        user_modal::Action::Close => self.modal = None,
+                        user_modal::Action::None => {}
                     }
                 }
             }
@@ -136,7 +137,7 @@ impl State {
             }
         }
 
-        Action::Run(Task::none())
+        Action::None
     }
 
     fn select_user(&mut self, user: User) {
@@ -236,10 +237,11 @@ mod user_modal {
     pub enum Action {
         Add,
         Close,
+        None,
     }
 
     impl State {
-        pub fn update(&mut self, message: Message) -> Option<Action> {
+        pub fn update(&mut self, message: Message) -> Action {
             match message {
                 Message::Username(name) => self.user.name = name,
                 Message::Password => self.user.auth_method = AuthMethod::Password,
@@ -251,11 +253,11 @@ mod user_modal {
                         api_token.clone_from(&self.token);
                     }
                 }
-                Message::Close => return Some(Action::Close),
-                Message::Submit => return Some(Action::Add),
+                Message::Close => return Action::Close,
+                Message::Submit => return Action::Add,
             }
 
-            None
+            Action::None
         }
 
         pub fn view(&self) -> Element<'_, Message> {
