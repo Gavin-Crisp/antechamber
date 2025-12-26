@@ -209,9 +209,13 @@ impl State {
 }
 
 mod user_modal {
-    use crate::config::{AuthMethod, User};
-    use iced::widget::{button, center, column, container, row, text_input};
-    use iced::{Center, Element, Fill};
+    use crate::{
+        config::{AuthMethod, User},
+        include_svg,
+    };
+    use iced::{widget::{button, center, column, container, row, svg, text_input}, Center, Element, Fill, Shrink};
+
+    include_svg!(CLOSE, "lucide/close.svg");
 
     #[derive(Clone, Debug, Default)]
     pub struct State {
@@ -255,7 +259,7 @@ mod user_modal {
         }
 
         pub fn view(&self) -> Element<'_, Message> {
-            let close = button("Close").on_press(Message::Close);
+            let close = button(svg(CLOSE.clone())).width(Shrink).on_press(Message::Close);
 
             let username =
                 text_input("Username", self.user.name.as_str()).on_input(Message::Username);
@@ -283,12 +287,10 @@ mod user_modal {
 
             let submit = button("Submit").on_press(Message::Submit);
 
-            center(
-                column![
-                    container(close).width(Fill),
-                    center(column![username, auth_method, submit].align_x(Center))
-                ]
-            )
+            center(column![
+                container(close).width(Fill),
+                center(column![username, auth_method, submit].align_x(Center))
+            ])
             .width(400)
             .height(400)
             .into()
