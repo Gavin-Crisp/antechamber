@@ -76,9 +76,11 @@ impl State {
         // TODO: Add error handling
         // let config = Config::load_file(CONFIG_PATH).expect("Config error handling not implemented");
         let config = Config {
+            default_cluster: Some(0),
             clusters: vec![Cluster {
                 name: "Cluster1".to_owned(),
                 hosts: vec![],
+                default_user: Some(0),
                 users: vec![
                     User {
                         name: "User1".to_owned(),
@@ -93,10 +95,9 @@ impl State {
             viewer_args: vec![],
         };
 
-        Self {
-            config,
-            screen: Screen::Login(login::State::default()),
-        }
+        let screen = Screen::Login(login::State::new(&config));
+
+        Self { config, screen }
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -154,7 +155,7 @@ impl State {
                 if let Screen::Connect(state) = &mut self.screen {
                     match state.update(message, &mut self.config) {
                         connect::Action::Logout => {
-                            self.screen = Screen::Login(login::State::default());
+                            self.screen = Screen::Login(login::State::new(&self.config));
                             Task::none()
                         }
                         connect::Action::Run(task) => task.map(Message::Connect),

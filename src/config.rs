@@ -5,20 +5,23 @@ use std::{
     path::Path,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+// TODO: Validate Config creation
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
+    pub default_cluster: Option<usize>,
     pub clusters: Vec<Cluster>,
     pub viewer_args: Vec<String>,
 }
 
 impl Config {
     #[allow(clippy::unnecessary_wraps)]
-    pub fn load_file(_path: impl AsRef<Path>) -> Option<Self> {
-        // TODO: load from file
-        Some(Self {
-            clusters: vec![],
-            viewer_args: vec![],
-        })
+    pub fn load(_path: impl AsRef<Path>) -> Option<Self> {
+        unimplemented!()
+    }
+
+    #[allow(clippy::unused_async)]
+    pub fn save(&self, _path: impl AsRef<Path>) {
+        unimplemented!()
     }
 }
 
@@ -26,6 +29,7 @@ impl Config {
 pub struct Cluster {
     pub name: String,
     pub hosts: Vec<Host>,
+    pub default_user: Option<usize>,
     pub users: Vec<User>,
 }
 

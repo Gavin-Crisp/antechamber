@@ -42,6 +42,22 @@ pub enum Action {
 }
 
 impl State {
+    pub fn new(config: &Config) -> Self {
+        let cluster = config
+            .default_cluster
+            .and_then(|index| config.clusters.get(index).cloned());
+        let user = cluster
+            .as_ref()
+            .and_then(|cluster| cluster.users.first().cloned());
+
+        Self {
+            cluster,
+            user,
+            password: String::new(),
+            secure_password: false,
+        }
+    }
+
     pub fn update(&mut self, message: Message, config: &mut Config) -> Action {
         match message {
             Message::SelectCluster(cluster) => {
@@ -61,9 +77,10 @@ impl State {
                     current_cluster.users.push(user.clone());
                     config.clusters[index].users.push(user.clone());
                     self.select_user(user);
+                    
+                    // TODO: save config changes
                 }
             }
-
             Message::Password(password) => self.password = password,
             Message::ShowPassword => self.secure_password = false,
             Message::HidePassword => self.secure_password = true,
@@ -147,16 +164,5 @@ impl State {
             .padding(10);
 
         center(input_box).into()
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            cluster: None,
-            user: None,
-            password: String::new(),
-            secure_password: true,
-        }
     }
 }
