@@ -65,7 +65,7 @@ impl State {
         }
     }
 
-    pub fn update(&mut self, message: Message, config: &mut Config) -> Action {
+    pub fn update(&mut self, message: Message, clusters: &mut [Cluster]) -> Action {
         match message {
             Message::SelectCluster(cluster) => {
                 if self
@@ -98,13 +98,12 @@ impl State {
                                 .user;
 
                             if let Some(current_cluster) = &mut self.cluster
-                                && let Some(index) = config
-                                    .clusters
+                                && let Some(index) = clusters
                                     .iter_mut()
                                     .position(|cluster| cluster.name == current_cluster.name)
                             {
                                 current_cluster.users.push(user.clone());
-                                config.clusters[index].users.push(user.clone());
+                                clusters[index].users.push(user.clone());
                                 self.select_user(user);
 
                                 // TODO: save config changes
@@ -145,9 +144,9 @@ impl State {
         self.password.clear();
     }
 
-    pub fn view<'a>(&'a self, config: &'a Config) -> Element<'a, Message> {
+    pub fn view<'a>(&'a self, clusters: &'a [Cluster]) -> Element<'a, Message> {
         let cluster_select = pick_list(
-            config.clusters.as_slice(),
+            clusters,
             self.cluster.as_ref(),
             Message::SelectCluster,
         )

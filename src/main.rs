@@ -139,7 +139,7 @@ impl State {
         match message {
             Message::Login(message) => {
                 if let Screen::Login(state) = &mut self.screen {
-                    match state.update(message, &mut self.config) {
+                    match state.update(message, &mut self.config.clusters) {
                         login::Action::Login(auth) => {
                             let (state, task) = connect::State::new(auth);
                             self.screen = Screen::Connect(state);
@@ -173,7 +173,7 @@ impl State {
 
     pub fn view(&self) -> Element<'_, Message> {
         let screen = match &self.screen {
-            Screen::Login(state) => state.view(&self.config).map(Message::Login),
+            Screen::Login(state) => state.view(&self.config.clusters).map(Message::Login),
             Screen::Connect(state) => state.view(&self.config).map(Message::Connect),
         };
 
