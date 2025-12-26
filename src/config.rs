@@ -45,7 +45,7 @@ pub enum Host {
     Dns(String),
 }
 
-#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub name: String,
     pub auth_method: AuthMethod,
@@ -57,8 +57,9 @@ impl Display for User {
     }
 }
 
-#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AuthMethod {
+    #[default]
     Password,
     ApiToken(String),
 }
