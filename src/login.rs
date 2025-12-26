@@ -61,12 +61,28 @@ impl State {
     pub fn update(&mut self, message: Message, config: &mut Config) -> Action {
         match message {
             Message::SelectCluster(cluster) => {
-                self.cluster = Some(cluster);
-                self.user = None;
+                if self
+                    .cluster
+                    .as_ref()
+                    .is_none_or(|current_cluster| current_cluster != &cluster)
+                {
+                    self.cluster = Some(cluster);
+                    self.user = None;
+                }
             }
             Message::SelectUser(user) => {
-                self.select_user(user);
+                if self
+                    .user
+                    .as_ref()
+                    .is_none_or(|current_user| current_user != &user)
+                {
+                    self.select_user(user);
+                }
             }
+            Message::ToggleModal => match self.modal {
+                None => self.modal = Some(user_modal::State::default()),
+                Some(_) => self.modal = None,
+            },
             Message::AddUser(user) => {
                 if let Some(current_cluster) = &mut self.cluster
                     && let Some(index) = config
