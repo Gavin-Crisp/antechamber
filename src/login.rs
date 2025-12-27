@@ -42,7 +42,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub enum Action {
-    Login(Auth),
+    Login(Auth, User),
     Run(Task<Message>),
     SaveConfig,
     None,
@@ -133,7 +133,9 @@ impl State {
                 })));
             }
             Message::Login(auth) => {
-                return Action::Login(auth);
+                if let Some(user) = self.user.take() {
+                    return Action::Login(auth, user);
+                }
             }
         }
 
@@ -146,12 +148,8 @@ impl State {
     }
 
     pub fn view<'a>(&'a self, clusters: &'a [Cluster]) -> Element<'a, Message> {
-        let cluster_select = pick_list(
-            clusters,
-            self.cluster.as_ref(),
-            Message::SelectCluster,
-        )
-        .placeholder("Select cluster");
+        let cluster_select = pick_list(clusters, self.cluster.as_ref(), Message::SelectCluster)
+            .placeholder("Select cluster");
 
         let user = self.cluster.as_ref().map(|cluster| {
             let user_select = pick_list(
@@ -214,7 +212,10 @@ mod user_modal {
         config::{AuthMethod, User},
         include_svg,
     };
-    use iced::{widget::{button, center, column, container, row, svg, text_input}, Center, Element, Fill, Shrink};
+    use iced::{
+        widget::{button, center, column, container, row, svg, text_input}, Center, Element, Fill,
+        Shrink,
+    };
 
     include_svg!(CLOSE, "lucide/close.svg");
 
@@ -261,7 +262,9 @@ mod user_modal {
         }
 
         pub fn view(&self) -> Element<'_, Message> {
-            let close = button(svg(CLOSE.clone())).width(Shrink).on_press(Message::Close);
+            let close = button(svg(CLOSE.clone()))
+                .width(Shrink)
+                .on_press(Message::Close);
 
             let username =
                 text_input("Username", self.user.name.as_str()).on_input(Message::Username);

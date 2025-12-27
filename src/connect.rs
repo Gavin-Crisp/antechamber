@@ -1,14 +1,15 @@
+use crate::config::User;
 use crate::{
+    config::Config,
     include_svg,
     proxmox::{Auth, Guest, GuestKind, SpiceConfig},
 };
 use iced::{
-    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, svg, text}, Center, Element, Fill,
+    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, opaque, scrollable, stack, svg, text}, Center, Element, Fill,
     Shrink,
     Subscription,
     Task,
 };
-use crate::config::Config;
 
 include_svg!(SETTINGS, "lucide/settings.svg");
 
@@ -16,7 +17,8 @@ include_svg!(SETTINGS, "lucide/settings.svg");
 pub struct State {
     auth: Auth,
     guests: Option<Vec<Guest>>,
-    modal: Option<Modal>,
+    user: User,
+    show_modal: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -26,10 +28,9 @@ pub enum Message {
     SpiceConfig(SpiceConfig),
     ConnectHost(u32),
     Logout,
+    Settings,
+    Modal(settings_modal::Message),
 }
-
-#[derive(Copy, Clone, Debug)]
-enum Modal {}
 
 #[derive(Debug)]
 pub enum Action {
@@ -39,12 +40,13 @@ pub enum Action {
 }
 
 impl State {
-    pub fn new(auth: Auth) -> (Self, Task<Message>) {
+    pub fn new(auth: Auth, user: User) -> (Self, Task<Message>) {
         (
             Self {
                 auth,
                 guests: None,
-                modal: None,
+                user,
+                show_modal: false,
             },
             // TODO: Replace with api call
             Task::done(Message::GetGuests(
@@ -85,6 +87,14 @@ impl State {
                 })));
             }
             Message::Logout => return Action::Logout,
+            Message::Settings => self.show_modal = true,
+            Message::Modal(message) => {
+                if self.show_modal {
+                    match settings_modal::update(&mut self.user, message) {
+                        settings_modal::Action::Close => self.show_modal = false,
+                    }
+                }
+            }
         }
 
         Action::None
@@ -106,7 +116,9 @@ impl State {
         .padding([75, 20]);
 
         let logout_button = button("Logout").on_press(Message::Logout);
-        let settings_button = button(svg(SETTINGS.clone())).width(Shrink);
+        let settings_button = button(svg(SETTINGS.clone()))
+            .on_press(Message::Settings)
+            .width(Shrink);
 
         let page = column![
             hosts,
@@ -118,9 +130,15 @@ impl State {
         .align_x(Horizontal::Center)
         .padding([25, 50]);
 
-        let _modal_box = self.modal.map(|_modal| "");
+        let modal = if self.show_modal {
+            Some(opaque(center(
+                settings_modal::view(&self.user).map(Message::Modal),
+            )))
+        } else {
+            None
+        };
 
-        page.into()
+        stack!(page, modal).width(Fill).into()
     }
 }
 
@@ -134,4 +152,40 @@ fn view_guest(guest: &Guest) -> Element<'_, Message> {
     .padding(10)
     .on_press(Message::ConnectHost(guest.vmid))
     .into()
+}
+
+mod settings_modal {
+    use crate::config::User;
+    use crate::include_svg;
+    use iced::widget::{button, center, column, container, svg};
+    use iced::{Element, Shrink};
+
+    include_svg!(CLOSE, "lucide/close.svg");
+
+    #[derive(Clone, Debug)]
+    pub enum Message {
+        Close,
+    }
+
+    pub enum Action {
+        Close,
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    pub const fn update(_user: &mut User, message: Message) -> Action {
+        match message {
+            Message::Close => Action::Close,
+        }
+    }
+
+    pub fn view(user: &User) -> Element<'_, Message> {
+        let close = button(svg(CLOSE.clone()))
+            .width(Shrink)
+            .on_press(Message::Close);
+
+        container(column![close, center(user.name.as_str())])
+            .width(400)
+            .height(400)
+            .into()
+    }
 }
