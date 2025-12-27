@@ -40,7 +40,13 @@ impl Display for Cluster {
 }
 
 #[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Host {
+pub struct Host {
+    address: Address,
+    port: u16,
+}
+
+#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Address {
     Ip(IpAddr),
     Dns(String),
 }
