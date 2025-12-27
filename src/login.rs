@@ -44,6 +44,7 @@ pub enum Message {
 pub enum Action {
     Login(Auth),
     Run(Task<Message>),
+    SaveConfig,
     None,
 }
 
@@ -106,7 +107,7 @@ impl State {
                                 clusters[index].users.push(user.clone());
                                 self.select_user(user);
 
-                                // TODO: save config changes
+                                return Action::SaveConfig;
                             }
                         }
                         user_modal::Action::Close => self.modal = None,

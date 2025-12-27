@@ -146,6 +146,10 @@ impl State {
                             task.map(Message::Connect)
                         }
                         login::Action::Run(task) => task.map(Message::Login),
+                        login::Action::SaveConfig => {
+                            // TODO: save config
+                            Task::none()
+                        }
                         login::Action::None => Task::none()
                     }
                 } else {
