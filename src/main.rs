@@ -1,8 +1,8 @@
 mod config;
 mod connect;
 mod login;
-mod proxmox;
 mod modal;
+mod proxmox;
 
 use crate::config::{AuthMethod, Cluster, Config, User};
 use iced::{
@@ -30,12 +30,13 @@ macro_rules! include_svg {
     };
 }
 
-const CONFIG_PATH: &str = "./config.yaml";
+pub const NAME_TITLE: &str = "Antechamber";
+pub const NAME_LOWER: &str = "antechamber";
 
 fn main() -> iced::Result {
     iced::application(State::new, State::update, State::view)
         .subscription(State::subscription)
-        .title("Antechamber")
+        .title(NAME_TITLE)
         .window(Settings {
             // Not strictly needed for intended use case, but I'll probably set one eventually
             icon: None,
@@ -148,10 +149,10 @@ impl State {
                         }
                         login::Action::Run(task) => task.map(Message::Login),
                         login::Action::SaveConfig => {
-                            // TODO: save config
+                            let _ = self.config.store();
                             Task::none()
                         }
-                        login::Action::None => Task::none()
+                        login::Action::None => Task::none(),
                     }
                 } else {
                     Task::none()
@@ -165,7 +166,7 @@ impl State {
                             Task::none()
                         }
                         connect::Action::Run(task) => task.map(Message::Connect),
-                        connect::Action::None => Task::none()
+                        connect::Action::None => Task::none(),
                     }
                 } else {
                     Task::none()

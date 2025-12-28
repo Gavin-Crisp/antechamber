@@ -1,12 +1,13 @@
+use crate::NAME_LOWER;
+use confy::ConfyError;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Display, Formatter},
     net::IpAddr,
-    path::Path,
 };
 
 // TODO: Validate Config creation
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
     pub default_cluster: Option<usize>,
     pub clusters: Vec<Cluster>,
@@ -14,14 +15,28 @@ pub struct Config {
 }
 
 impl Config {
-    #[allow(clippy::unnecessary_wraps)]
-    pub fn load(_path: impl AsRef<Path>) -> Option<Self> {
-        unimplemented!()
+    const FILE_NAME: &str = "config";
+    const DEBUG_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/debug_conf.toml");
+
+    pub fn load() -> Self {
+        let res = if cfg!(feature = "dev_mode") {
+            confy::load_path(Self::DEBUG_PATH)
+        } else {
+            confy::load(NAME_LOWER, Self::FILE_NAME)
+        };
+
+        res.unwrap_or_else(|_| {
+            let _ = Self::default().store();
+            Self::default()
+        })
     }
 
-    #[allow(clippy::unused_async)]
-    pub fn save(&self, _path: impl AsRef<Path>) {
-        unimplemented!()
+    pub fn store(&self) -> Result<(), ConfyError> {
+        if cfg!(feature = "dev_mode") {
+            confy::store_path(Self::DEBUG_PATH, self)
+        } else {
+            confy::store(NAME_LOWER, Self::FILE_NAME, self)
+        }
     }
 }
 
