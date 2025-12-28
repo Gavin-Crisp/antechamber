@@ -1,11 +1,11 @@
-use crate::config::User;
 use crate::{
-    config::Config,
+    config::{Config, User},
     include_svg,
+    modal::modal,
     proxmox::{Auth, Guest, GuestKind, SpiceConfig},
 };
 use iced::{
-    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, opaque, scrollable, stack, svg, text}, Center, Element, Fill,
+    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill,
     Shrink,
     Subscription,
     Task,
@@ -130,15 +130,19 @@ impl State {
         .align_x(Horizontal::Center)
         .padding([25, 50]);
 
-        let modal = if self.show_modal {
-            Some(opaque(center(
-                settings_modal::view(&self.user).map(Message::Modal),
-            )))
-        } else {
-            None
-        };
-
-        stack!(page, modal).width(Fill).into()
+        stack![
+            page,
+            if self.show_modal {
+                Some(modal(
+                    settings_modal::view(&self.user).map(Message::Modal),
+                    Message::Modal(settings_modal::Message::Close),
+                ))
+            } else {
+                None
+            },
+        ]
+        .width(Fill)
+        .into()
     }
 }
 
@@ -156,11 +160,7 @@ fn view_guest(guest: &Guest) -> Element<'_, Message> {
 
 mod settings_modal {
     use crate::config::User;
-    use crate::include_svg;
-    use iced::widget::{button, center, column, container, svg};
-    use iced::{Element, Shrink};
-
-    include_svg!(CLOSE, "lucide/close.svg");
+    use iced::{widget::container, Element};
 
     #[derive(Clone, Debug)]
     pub enum Message {
@@ -179,13 +179,6 @@ mod settings_modal {
     }
 
     pub fn view(user: &User) -> Element<'_, Message> {
-        let close = button(svg(CLOSE.clone()))
-            .width(Shrink)
-            .on_press(Message::Close);
-
-        container(column![close, center(user.name.as_str())])
-            .width(400)
-            .height(400)
-            .into()
+        container(user.name.as_str()).center(400).into()
     }
 }

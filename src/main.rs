@@ -2,6 +2,7 @@ mod config;
 mod connect;
 mod login;
 mod proxmox;
+mod modal;
 
 use crate::config::{AuthMethod, Cluster, Config, User};
 use iced::{

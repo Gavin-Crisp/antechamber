@@ -1,13 +1,12 @@
+use crate::modal::modal;
 use crate::{
     config::{AuthMethod, Cluster, Config, User},
     include_svg,
     proxmox::Auth,
 };
-use iced::widget::opaque;
+use iced::widget::stack;
 use iced::{
-    alignment::Horizontal, mouse::Interaction, widget::{
-        button, center, column, container, mouse_area, pick_list, row, stack, svg, text_input, Svg,
-    }, Element,
+    alignment::Horizontal, mouse::Interaction, widget::{button, center, column, container, mouse_area, pick_list, row, svg, text_input, Svg}, Element,
     Fill,
     Shrink,
     Task,
@@ -197,27 +196,23 @@ impl State {
             .width(300)
             .padding(10);
 
-        stack!(
+        stack![
             center(input_box),
-            self.modal
-                .as_ref()
-                .map(|state| opaque(center(state.view().map(Message::Modal))))
-        )
+            self.modal.as_ref().map(|state| modal(
+                state.view().map(Message::Modal),
+                Message::Modal(user_modal::Message::Close)
+            )),
+        ]
         .into()
     }
 }
 
 mod user_modal {
-    use crate::{
-        config::{AuthMethod, User},
-        include_svg,
-    };
+    use crate::config::{AuthMethod, User};
     use iced::{
-        widget::{button, center, column, container, row, svg, text_input}, Center, Element, Fill,
-        Shrink,
+        widget::{button, column, container, row, text_input}, Center,
+        Element,
     };
-
-    include_svg!(CLOSE, "lucide/close.svg");
 
     #[derive(Clone, Debug, Default)]
     pub struct State {
@@ -262,10 +257,6 @@ mod user_modal {
         }
 
         pub fn view(&self) -> Element<'_, Message> {
-            let close = button(svg(CLOSE.clone()))
-                .width(Shrink)
-                .on_press(Message::Close);
-
             let username =
                 text_input("Username", self.user.name.as_str()).on_input(Message::Username);
 
@@ -292,13 +283,9 @@ mod user_modal {
 
             let submit = button("Submit").on_press(Message::Submit);
 
-            center(column![
-                container(close).width(Fill),
-                center(column![username, auth_method, submit].align_x(Center))
-            ])
-            .width(400)
-            .height(400)
-            .into()
+            container(column![username, auth_method, submit].align_x(Center))
+                .center(400)
+                .into()
         }
     }
 }
