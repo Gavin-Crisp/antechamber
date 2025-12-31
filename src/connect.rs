@@ -113,7 +113,7 @@ impl State {
             )
             .height(240),
         )
-        .padding([75, 20]);
+        .padding([50, 20]);
 
         let logout_button = button("Logout").on_press(Message::Logout);
         let settings_button = button(svg(SETTINGS.clone()))
@@ -121,6 +121,7 @@ impl State {
             .width(Shrink);
 
         let page = column![
+            text(&self.user.name).size(25).width(Fill),
             hosts,
             logout_button,
             container(Option::<Element<Message>>::None).height(Fill),
