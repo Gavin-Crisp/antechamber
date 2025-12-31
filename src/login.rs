@@ -61,7 +61,7 @@ impl State {
             cluster,
             user,
             password: String::new(),
-            secure_password: false,
+            secure_password: true,
         }
     }
 
@@ -90,16 +90,12 @@ impl State {
             Message::Modal(message) => {
                 if let Some(state) = &mut self.modal {
                     match state.update(message) {
-                        user_modal::Action::Add => {
-                            let user = self
-                                .modal
-                                .take()
-                                .expect("self.modal is always Some here")
-                                .user;
+                        user_modal::Action::Add(user) => {
+                            self.modal = None;
 
                             if let Some(current_cluster) = &mut self.cluster
                                 && let Some(index) = clusters
-                                    .iter_mut()
+                                    .iter()
                                     .position(|cluster| cluster.name == current_cluster.name)
                             {
                                 current_cluster.users.push(user.clone());
@@ -213,11 +209,11 @@ mod user_modal {
         widget::{button, column, container, row, text_input}, Center,
         Element,
     };
+    use std::mem;
 
     #[derive(Clone, Debug, Default)]
     pub struct State {
-        pub user: User,
-        token: String,
+        user: User,
     }
 
     #[derive(Clone, Debug)]
@@ -231,7 +227,7 @@ mod user_modal {
     }
 
     pub enum Action {
-        Add,
+        Add(User),
         Close,
         None,
     }
@@ -241,49 +237,64 @@ mod user_modal {
             match message {
                 Message::Username(name) => self.user.name = name,
                 Message::Password => self.user.auth_method = AuthMethod::Password,
-                Message::Api => self.user.auth_method = AuthMethod::ApiToken(self.token.clone()),
+                Message::Api => self.user.auth_method = AuthMethod::ApiToken(String::new()),
                 Message::Token(token) => {
-                    self.token = token;
-
-                    if let AuthMethod::ApiToken(api_token) = &mut self.user.auth_method {
-                        api_token.clone_from(&self.token);
+                    if let AuthMethod::ApiToken(curr_token) = &mut self.user.auth_method {
+                        *curr_token = token;
                     }
                 }
                 Message::Close => return Action::Close,
-                Message::Submit => return Action::Add,
+                Message::Submit => {
+                    if self.is_valid() {
+                        return Action::Add(mem::take(&mut self.user));
+                    }
+                }
             }
 
             Action::None
+        }
+
+        pub const fn is_valid(&self) -> bool {
+            if self.user.name.is_empty() {
+                return false;
+            }
+
+            if let AuthMethod::ApiToken(token) = &self.user.auth_method
+                && token.is_empty()
+            {
+                return false;
+            }
+
+            true
         }
 
         pub fn view(&self) -> Element<'_, Message> {
             let username =
                 text_input("Username", self.user.name.as_str()).on_input(Message::Username);
 
-            let token = text_input("API Token", self.token.as_str()).on_input_maybe(
-                match self.user.auth_method {
-                    AuthMethod::Password => None,
-                    AuthMethod::ApiToken(_) => Some(Message::Token),
-                },
-            );
+            let password = button("Password");
+            let api = button("API Token");
 
-            let auth_method = row![
-                button("Password").on_press_maybe(match self.user.auth_method {
-                    AuthMethod::Password => None,
-                    AuthMethod::ApiToken(_) => Some(Message::Password),
-                }),
-                column![
-                    button("API Token").on_press_maybe(match self.user.auth_method {
-                        AuthMethod::Password => Some(Message::Api),
-                        AuthMethod::ApiToken(_) => None,
-                    }),
-                    token
-                ]
-            ];
+            let buttons = match self.user.auth_method {
+                AuthMethod::Password => row![password, api.on_press(Message::Api)],
+                AuthMethod::ApiToken(_) => row![password.on_press(Message::Password), api],
+            };
 
-            let submit = button("Submit").on_press(Message::Submit);
+            let auth_method = match &self.user.auth_method {
+                AuthMethod::Password => None,
+                AuthMethod::ApiToken(token) => Some(
+                    text_input("API Token", token.as_str())
+                        .on_input(Message::Token)
+                        .on_submit(Message::Submit),
+                ),
+            };
 
-            container(column![username, auth_method, submit].align_x(Center))
+            let submit = match &self.user.auth_method {
+                AuthMethod::Password => Some(button("Submit").on_press(Message::Submit)),
+                AuthMethod::ApiToken(_) => None,
+            };
+
+            container(column![username, buttons, auth_method, submit].align_x(Center))
                 .center(400)
                 .into()
         }
