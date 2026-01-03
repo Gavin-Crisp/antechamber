@@ -1,12 +1,13 @@
-use crate::modal::modal;
 use crate::{
     config::{AuthMethod, Cluster, Config, User},
     include_svg,
+    modal::modal,
     proxmox::Auth,
 };
-use iced::widget::stack;
 use iced::{
-    alignment::Horizontal, mouse::Interaction, widget::{button, center, column, container, mouse_area, pick_list, row, svg, text_input, Svg}, Element,
+    alignment::Horizontal, mouse::Interaction, widget::{
+        button, center, column, container, mouse_area, pick_list, row, stack, svg, text_input, Svg,
+    }, Element,
     Fill,
     Shrink,
     Task,
@@ -19,7 +20,7 @@ include_svg!(ADD_USER, "lucide/user-plus.svg");
 #[derive(Debug)]
 pub struct State {
     modal: Option<user_modal::State>,
-    cluster: Option<Cluster>,
+    cluster: Option<usize>,
     user: Option<User>,
     password: String,
     secure_password: bool,
@@ -27,7 +28,7 @@ pub struct State {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    SelectCluster(Cluster),
+    SelectCluster(usize),
     SelectUser(User),
     ShowModal,
     Modal(user_modal::Message),
@@ -49,12 +50,8 @@ pub enum Action {
 
 impl State {
     pub fn new(config: &Config) -> Self {
-        let cluster = config
-            .default_cluster
-            .and_then(|index| config.clusters.get(index).cloned());
-        let user = cluster
-            .as_ref()
-            .and_then(|cluster| cluster.users.first().cloned());
+        let cluster = config.default_cluster;
+        let user = cluster.and_then(|idx| config.clusters[idx].users.first().cloned());
 
         Self {
             modal: None,
@@ -68,13 +65,17 @@ impl State {
     pub fn update(&mut self, message: Message, clusters: &mut [Cluster]) -> Action {
         match message {
             Message::SelectCluster(cluster) => {
-                if self
-                    .cluster
-                    .as_ref()
-                    .is_none_or(|current_cluster| current_cluster != &cluster)
-                {
+                if self.cluster.is_none_or(|current| current != cluster) {
                     self.cluster = Some(cluster);
-                    self.user = None;
+
+                    if let Some(user) = clusters[cluster]
+                        .default_user
+                        .and_then(|idx| clusters[idx].users.first().cloned())
+                    {
+                        self.select_user(user);
+                    } else {
+                        self.user = None;
+                    }
                 }
             }
             Message::SelectUser(user) => {
@@ -93,12 +94,7 @@ impl State {
                         user_modal::Action::Add(user) => {
                             self.modal = None;
 
-                            if let Some(current_cluster) = &mut self.cluster
-                                && let Some(index) = clusters
-                                    .iter()
-                                    .position(|cluster| cluster.name == current_cluster.name)
-                            {
-                                current_cluster.users.push(user.clone());
+                            if let Some(index) = self.cluster {
                                 clusters[index].users.push(user.clone());
                                 self.select_user(user);
 
@@ -143,12 +139,23 @@ impl State {
     }
 
     pub fn view<'a>(&'a self, clusters: &'a [Cluster]) -> Element<'a, Message> {
-        let cluster_select = pick_list(clusters, self.cluster.as_ref(), Message::SelectCluster)
-            .placeholder("Select cluster");
+        let cluster_select = pick_list(
+            clusters,
+            self.cluster.map(|idx| clusters[idx].clone()),
+            |cluster| {
+                Message::SelectCluster(
+                    clusters
+                        .iter()
+                        .position(|c| c.name == cluster.name)
+                        .expect("cluster is in clusters"),
+                )
+            },
+        )
+        .placeholder("Select cluster");
 
-        let user = self.cluster.as_ref().map(|cluster| {
+        let user = self.cluster.map(|cluster| {
             let user_select = pick_list(
-                cluster.users.as_slice(),
+                clusters[cluster].users.as_slice(),
                 self.user.as_ref(),
                 Message::SelectUser,
             )
