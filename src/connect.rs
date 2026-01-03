@@ -71,33 +71,46 @@ impl State {
 
     pub fn update(&mut self, message: Message, _config: &mut Config) -> Action {
         match message {
-            Message::Auth(auth) => self.auth = auth,
-            Message::GetGuests(guests) => self.guests = Some(guests),
+            Message::Auth(auth) => {
+                self.auth = auth;
+
+                Action::None
+            }
+            Message::GetGuests(guests) => {
+                self.guests = Some(guests);
+
+                Action::None
+            }
             Message::SpiceConfig(_spice_config) => {
                 // TODO: start remote viewer with config
+                Action::None
             }
             Message::ConnectHost(_vmid) => {
                 // TODO: Replace with attempt connection
-                return Action::Run(Task::done(Message::SpiceConfig(SpiceConfig {
+                Action::Run(Task::done(Message::SpiceConfig(SpiceConfig {
                     host: String::new(),
                     password: String::new(),
                     proxy: String::new(),
                     tls_port: 0,
                     conn_type: String::new(),
-                })));
+                })))
             }
-            Message::Logout => return Action::Logout,
-            Message::Settings => self.show_modal = true,
+            Message::Logout => Action::Logout,
+            Message::Settings => {
+                self.show_modal = true;
+
+                Action::None
+            }
             Message::Modal(message) => {
                 if self.show_modal {
                     match settings_modal::update(&mut self.user, message) {
                         settings_modal::Action::Close => self.show_modal = false,
                     }
                 }
+
+                Action::None
             }
         }
-
-        Action::None
     }
 
     pub fn view(&self, _config: &Config) -> Element<'_, Message> {

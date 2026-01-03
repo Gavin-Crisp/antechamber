@@ -65,13 +65,18 @@ impl State {
                 if self.cluster.is_none_or(|current| current != cluster) {
                     self.cluster = Some(cluster);
                 }
+                Action::None
             }
             Message::SelectUser(new) => {
                 if self.user.is_none_or(|current| current != new) {
                     self.select_user(new);
                 }
+                Action::None
             }
-            Message::ShowModal => self.modal = Some(user_modal::State::default()),
+            Message::ShowModal => {
+                self.modal = Some(user_modal::State::default());
+                Action::None
+            }
             Message::Modal(message) => {
                 if let Some(state) = &mut self.modal {
                     match state.update(message) {
@@ -86,32 +91,45 @@ impl State {
                         user_modal::Action::None => {}
                     }
                 }
+                Action::None
             }
-            Message::Password(password) => self.password = password,
-            Message::ShowPassword => self.secure_password = false,
-            Message::HidePassword => self.secure_password = true,
+            Message::Password(password) => {
+                self.password = password;
+                Action::None
+            }
+            Message::ShowPassword => {
+                self.secure_password = false;
+                Action::None
+            }
+            Message::HidePassword => {
+                self.secure_password = true;
+                Action::None
+            }
             Message::SubmitPassword => {
                 // TODO: replace with password login
-                return Action::Run(Task::done(Message::Login(Auth {
+                Action::Run(Task::done(Message::Login(Auth {
                     csrf: String::new(),
                     ticket: String::new(),
-                })));
+                })))
             }
             Message::SubmitApi => {
                 // TODO: replace with api login
-                return Action::Run(Task::done(Message::Login(Auth {
+                Action::Run(Task::done(Message::Login(Auth {
                     ticket: String::new(),
                     csrf: String::new(),
-                })));
+                })))
             }
             Message::Login(auth) => {
-                if let Some(user) = self.user.take() {
-                    return Action::Login(auth, config.users[user].clone());
+                if let Some(user) = self.user
+                    && config.users[user].auth_method == AuthMethod::Password
+                    && !self.password.is_empty()
+                {
+                    Action::Login(auth, config.users[user].clone())
+                } else {
+                    Action::None
                 }
             }
         }
-
-        Action::None
     }
 
     fn select_user(&mut self, user: usize) {
@@ -230,23 +248,33 @@ mod user_modal {
     impl State {
         pub fn update(&mut self, message: Message) -> Action {
             match message {
-                Message::Username(name) => self.user.name = name,
-                Message::Password => self.user.auth_method = AuthMethod::Password,
-                Message::Api => self.user.auth_method = AuthMethod::ApiToken(String::new()),
+                Message::Username(name) => {
+                    self.user.name = name;
+                    Action::None
+                }
+                Message::Password => {
+                    self.user.auth_method = AuthMethod::Password;
+                    Action::None
+                }
+                Message::Api => {
+                    self.user.auth_method = AuthMethod::ApiToken(String::new());
+                    Action::None
+                }
                 Message::Token(token) => {
                     if let AuthMethod::ApiToken(curr_token) = &mut self.user.auth_method {
                         *curr_token = token;
                     }
+                    Action::None
                 }
-                Message::Close => return Action::Close,
+                Message::Close => Action::Close,
                 Message::Submit => {
                     if self.is_valid() {
-                        return Action::Add(mem::take(&mut self.user));
+                        Action::Add(mem::take(&mut self.user))
+                    } else {
+                        Action::None
                     }
                 }
             }
-
-            Action::None
         }
 
         pub const fn is_valid(&self) -> bool {
