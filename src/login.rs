@@ -21,7 +21,8 @@ include_svg!(ADD_USER, "lucide/user-plus.svg");
 pub struct State {
     modal: Option<user_modal::State>,
     cluster: Option<usize>,
-    user: Option<User>,
+    // TODO: nest user in cluster,
+    user: Option<usize>,
     password: String,
     secure_password: bool,
 }
@@ -29,7 +30,7 @@ pub struct State {
 #[derive(Clone, Debug)]
 pub enum Message {
     SelectCluster(usize),
-    SelectUser(User),
+    SelectUser(usize),
     ShowModal,
     Modal(user_modal::Message),
     Password(String),
@@ -51,7 +52,7 @@ pub enum Action {
 impl State {
     pub fn new(config: &Config) -> Self {
         let cluster = config.default_cluster;
-        let user = cluster.and_then(|idx| config.clusters[idx].users.first().cloned());
+        let user = cluster.and_then(|idx| config.clusters[idx].default_user);
 
         Self {
             modal: None,
@@ -68,23 +69,15 @@ impl State {
                 if self.cluster.is_none_or(|current| current != cluster) {
                     self.cluster = Some(cluster);
 
-                    if let Some(user) = clusters[cluster]
-                        .default_user
-                        .and_then(|idx| clusters[idx].users.first().cloned())
-                    {
-                        self.select_user(user);
-                    } else {
-                        self.user = None;
+                    match clusters[cluster].default_user {
+                        Some(user) => self.select_user(user),
+                        None => self.user = None,
                     }
                 }
             }
-            Message::SelectUser(user) => {
-                if self
-                    .user
-                    .as_ref()
-                    .is_none_or(|current_user| current_user != &user)
-                {
-                    self.select_user(user);
+            Message::SelectUser(new) => {
+                if self.user.is_none_or(|current| current != new) {
+                    self.select_user(new);
                 }
             }
             Message::ShowModal => self.modal = Some(user_modal::State::default()),
@@ -95,8 +88,10 @@ impl State {
                             self.modal = None;
 
                             if let Some(index) = self.cluster {
-                                clusters[index].users.push(user.clone());
-                                self.select_user(user);
+                                let users = &mut clusters[index].users;
+
+                                users.push(user);
+                                self.select_user(users.len() - 1);
 
                                 return Action::SaveConfig;
                             }
@@ -125,7 +120,10 @@ impl State {
             }
             Message::Login(auth) => {
                 if let Some(user) = self.user.take() {
-                    return Action::Login(auth, user);
+                    return Action::Login(
+                        auth,
+                        clusters[self.cluster.expect("This is Some here")].users[user].clone(),
+                    );
                 }
             }
         }
@@ -133,7 +131,7 @@ impl State {
         Action::None
     }
 
-    fn select_user(&mut self, user: User) {
+    fn select_user(&mut self, user: usize) {
         self.user = Some(user);
         self.password.clear();
     }
@@ -154,10 +152,19 @@ impl State {
         .placeholder("Select cluster");
 
         let user = self.cluster.map(|cluster| {
+            let users = &clusters[cluster].users;
+
             let user_select = pick_list(
-                clusters[cluster].users.as_slice(),
-                self.user.as_ref(),
-                Message::SelectUser,
+                users.as_slice(),
+                self.user.map(|idx| users[idx].clone()),
+                |user| {
+                    Message::SelectUser(
+                        users
+                            .iter()
+                            .position(|u| u.name == user.name)
+                            .expect("user is in users"),
+                    )
+                },
             )
             .placeholder("Select user");
 
@@ -168,8 +175,8 @@ impl State {
             row![user_select, add_user]
         });
 
-        let auth: Option<Element<Message>> =
-            self.user.as_ref().map(|user| match user.auth_method {
+        let auth: Option<Element<Message>> = self.user.map(|user| {
+            match clusters[self.cluster.expect("cluster is some here")].users[user].auth_method {
                 AuthMethod::Password => {
                     let password_input = text_input("Password", &self.password)
                         .on_input(Message::Password)
@@ -190,7 +197,8 @@ impl State {
                     row![password_input, show_button].height(Shrink).into()
                 }
                 AuthMethod::ApiToken(_) => button("Login").on_press(Message::SubmitApi).into(),
-            });
+            }
+        });
 
         let input_box = column![cluster_select, user, auth]
             .padding(10)
