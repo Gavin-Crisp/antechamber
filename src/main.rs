@@ -75,25 +75,25 @@ enum Message {
 
 impl State {
     pub fn new() -> Self {
-        // TODO: Add error handling
+        // TODO: Load file and handle errors
         // let config = Config::load_file(CONFIG_PATH).expect("Config error handling not implemented");
         let config = Config {
             default_cluster: Some(0),
             clusters: vec![Cluster {
                 name: "Cluster1".to_owned(),
                 hosts: vec![],
-                default_user: Some(0),
-                users: vec![
-                    User {
-                        name: "User1".to_owned(),
-                        auth_method: AuthMethod::Password,
-                    },
-                    User {
-                        name: "User2".to_owned(),
-                        auth_method: AuthMethod::ApiToken("PROXMOX-API-TOKEN".to_owned()),
-                    },
-                ],
             }],
+            default_user: Some(0),
+            users: vec![
+                User {
+                    name: "User1".to_owned(),
+                    auth_method: AuthMethod::Password,
+                },
+                User {
+                    name: "User2".to_owned(),
+                    auth_method: AuthMethod::ApiToken("PROXMOX-API-TOKEN".to_owned()),
+                },
+            ],
             viewer_args: vec![],
         };
 
@@ -141,7 +141,7 @@ impl State {
         match message {
             Message::Login(message) => {
                 if let Screen::Login(state) = &mut self.screen {
-                    match state.update(message, &mut self.config.clusters) {
+                    match state.update(message, &mut self.config) {
                         login::Action::Login(auth, user) => {
                             let (state, task) = connect::State::new(auth, user);
                             self.screen = Screen::Connect(state);
@@ -179,7 +179,7 @@ impl State {
 
     pub fn view(&self) -> Element<'_, Message> {
         let screen = match &self.screen {
-            Screen::Login(state) => state.view(&self.config.clusters).map(Message::Login),
+            Screen::Login(state) => state.view(&self.config).map(Message::Login),
             Screen::Connect(state) => state.view(&self.config).map(Message::Connect),
         };
 

@@ -1,5 +1,5 @@
 use crate::{
-    config::{AuthMethod, Cluster, Config, User},
+    config::{AuthMethod, Config, User},
     include_svg,
     modal::modal,
     proxmox::Auth,
@@ -21,7 +21,6 @@ include_svg!(ADD_USER, "lucide/user-plus.svg");
 pub struct State {
     modal: Option<user_modal::State>,
     cluster: Option<usize>,
-    // TODO: nest user in cluster,
     user: Option<usize>,
     password: String,
     secure_password: bool,
@@ -50,29 +49,21 @@ pub enum Action {
 }
 
 impl State {
-    pub fn new(config: &Config) -> Self {
-        let cluster = config.default_cluster;
-        let user = cluster.and_then(|idx| config.clusters[idx].default_user);
-
+    pub const fn new(config: &Config) -> Self {
         Self {
             modal: None,
-            cluster,
-            user,
+            cluster: config.default_cluster,
+            user: config.default_user,
             password: String::new(),
             secure_password: true,
         }
     }
 
-    pub fn update(&mut self, message: Message, clusters: &mut [Cluster]) -> Action {
+    pub fn update(&mut self, message: Message, config: &mut Config) -> Action {
         match message {
             Message::SelectCluster(cluster) => {
                 if self.cluster.is_none_or(|current| current != cluster) {
                     self.cluster = Some(cluster);
-
-                    match clusters[cluster].default_user {
-                        Some(user) => self.select_user(user),
-                        None => self.user = None,
-                    }
                 }
             }
             Message::SelectUser(new) => {
@@ -86,15 +77,10 @@ impl State {
                     match state.update(message) {
                         user_modal::Action::Add(user) => {
                             self.modal = None;
+                            config.users.push(user);
+                            self.select_user(config.users.len() - 1);
 
-                            if let Some(index) = self.cluster {
-                                let users = &mut clusters[index].users;
-
-                                users.push(user);
-                                self.select_user(users.len() - 1);
-
-                                return Action::SaveConfig;
-                            }
+                            return Action::SaveConfig;
                         }
                         user_modal::Action::Close => self.modal = None,
                         user_modal::Action::None => {}
@@ -120,10 +106,7 @@ impl State {
             }
             Message::Login(auth) => {
                 if let Some(user) = self.user.take() {
-                    return Action::Login(
-                        auth,
-                        clusters[self.cluster.expect("This is Some here")].users[user].clone(),
-                    );
+                    return Action::Login(auth, config.users[user].clone());
                 }
             }
         }
@@ -136,13 +119,14 @@ impl State {
         self.password.clear();
     }
 
-    pub fn view<'a>(&'a self, clusters: &'a [Cluster]) -> Element<'a, Message> {
+    pub fn view<'a>(&'a self, config: &'a Config) -> Element<'a, Message> {
         let cluster_select = pick_list(
-            clusters,
-            self.cluster.map(|idx| clusters[idx].clone()),
+            config.clusters.as_slice(),
+            self.cluster.map(|idx| &config.clusters[idx]),
             |cluster| {
                 Message::SelectCluster(
-                    clusters
+                    config
+                        .clusters
                         .iter()
                         .position(|c| c.name == cluster.name)
                         .expect("cluster is in clusters"),
@@ -151,32 +135,29 @@ impl State {
         )
         .placeholder("Select cluster");
 
-        let user = self.cluster.map(|cluster| {
-            let users = &clusters[cluster].users;
+        let user_select = pick_list(
+            config.users.as_slice(),
+            self.user.map(|idx| &config.users[idx]),
+            |user| {
+                Message::SelectUser(
+                    config
+                        .users
+                        .iter()
+                        .position(|u| u.name == user.name)
+                        .expect("user is in users"),
+                )
+            },
+        )
+        .placeholder("Select user");
 
-            let user_select = pick_list(
-                users.as_slice(),
-                self.user.map(|idx| users[idx].clone()),
-                |user| {
-                    Message::SelectUser(
-                        users
-                            .iter()
-                            .position(|u| u.name == user.name)
-                            .expect("user is in users"),
-                    )
-                },
-            )
-            .placeholder("Select user");
+        let add_user = button(svg(ADD_USER.clone()))
+            .width(Shrink)
+            .on_press(Message::ShowModal);
 
-            let add_user = button(svg(ADD_USER.clone()))
-                .width(Shrink)
-                .on_press(Message::ShowModal);
+        let user = row![user_select, add_user];
 
-            row![user_select, add_user]
-        });
-
-        let auth: Option<Element<Message>> = self.user.map(|user| {
-            match clusters[self.cluster.expect("cluster is some here")].users[user].auth_method {
+        let auth: Option<Element<Message>> =
+            self.user.map(|user| match config.users[user].auth_method {
                 AuthMethod::Password => {
                     let password_input = text_input("Password", &self.password)
                         .on_input(Message::Password)
@@ -197,8 +178,7 @@ impl State {
                     row![password_input, show_button].height(Shrink).into()
                 }
                 AuthMethod::ApiToken(_) => button("Login").on_press(Message::SubmitApi).into(),
-            }
-        });
+            });
 
         let input_box = column![cluster_select, user, auth]
             .padding(10)

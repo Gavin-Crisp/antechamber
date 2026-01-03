@@ -11,6 +11,8 @@ use std::{
 pub struct Config {
     pub default_cluster: Option<usize>,
     pub clusters: Vec<Cluster>,
+    pub default_user: Option<usize>,
+    pub users: Vec<User>,
     pub viewer_args: Vec<String>,
 }
 
@@ -44,8 +46,6 @@ impl Config {
 pub struct Cluster {
     pub name: String,
     pub hosts: Vec<Host>,
-    pub default_user: Option<usize>,
-    pub users: Vec<User>,
 }
 
 impl Display for Cluster {
