@@ -18,7 +18,7 @@ pub struct State {
     auth: Auth,
     guests: Option<Vec<Guest>>,
     user: User,
-    show_modal: bool,
+    modal: Option<User>,
 }
 
 #[derive(Clone, Debug)]
@@ -46,7 +46,7 @@ impl State {
                 auth,
                 guests: None,
                 user,
-                show_modal: false,
+                modal: None,
             },
             // TODO: Replace with api call
             Task::done(Message::GetGuests(
@@ -97,14 +97,14 @@ impl State {
             }
             Message::Logout => Action::Logout,
             Message::Settings => {
-                self.show_modal = true;
+                self.modal = Some(self.user.clone());
 
                 Action::None
             }
             Message::Modal(message) => {
-                if self.show_modal {
-                    match settings_modal::update(&mut self.user, message) {
-                        settings_modal::Action::Close => self.show_modal = false,
+                if let Some(user) = &mut self.modal {
+                    match settings_modal::update(user, message) {
+                        settings_modal::Action::Close => self.modal = None,
                     }
                 }
 
@@ -146,14 +146,10 @@ impl State {
 
         stack![
             page,
-            if self.show_modal {
-                Some(modal(
-                    settings_modal::view(&self.user).map(Message::Modal),
-                    Message::Modal(settings_modal::Message::Close),
-                ))
-            } else {
-                None
-            },
+            self.modal.as_ref().map(|user| modal(
+                settings_modal::view(user).map(Message::Modal),
+                Message::Modal(settings_modal::Message::Close),
+            ))
         ]
         .width(Fill)
         .into()
