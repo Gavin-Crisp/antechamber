@@ -110,24 +110,30 @@ impl State {
                 Action::None
             }
             Message::SubmitPassword => {
-                // TODO: replace with password login
-                Action::Run(Task::done(Message::Login(Auth {
-                    csrf: String::new(),
-                    ticket: String::new(),
-                })))
+                if self.user.is_some() && !self.password.is_empty() {
+                    // TODO: replace with password login
+                    Action::Run(Task::done(Message::Login(Auth {
+                        csrf: String::new(),
+                        ticket: String::new(),
+                    })))
+                } else {
+                    Action::None
+                }
             }
             Message::SubmitApi => {
-                // TODO: replace with api login
-                Action::Run(Task::done(Message::Login(Auth {
-                    ticket: String::new(),
-                    csrf: String::new(),
-                })))
+                if self.user.is_some() {
+                    // TODO: replace with api login
+                    Action::Run(Task::done(Message::Login(Auth {
+                        ticket: String::new(),
+                        csrf: String::new(),
+                    })))
+                } else {
+                    Action::None
+                }
             }
             Message::Login(auth) => {
                 if let Some(cluster) = self.cluster
                     && let Some(user) = self.user
-                    && config.users[user].auth_method == AuthMethod::Password
-                    && !self.password.is_empty()
                 {
                     Action::Login {
                         auth,
