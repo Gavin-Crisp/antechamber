@@ -142,8 +142,8 @@ impl State {
             Message::Login(message) => {
                 if let Screen::Login(state) = &mut self.screen {
                     match state.update(message, &mut self.config) {
-                        login::Action::Login(auth, user) => {
-                            let (state, task) = connect::State::new(auth, user);
+                        login::Action::Login{auth, cluster, user} => {
+                            let (state, task) = connect::State::new(auth, cluster, user);
                             self.screen = Screen::Connect(state);
                             task.map(Message::Connect)
                         }
@@ -160,7 +160,7 @@ impl State {
             }
             Message::Connect(message) => {
                 if let Screen::Connect(state) = &mut self.screen {
-                    match state.update(message, &mut self.config) {
+                    match state.update(message, &self.config) {
                         connect::Action::Logout => {
                             self.screen = Screen::Login(login::State::new(&self.config));
                             Task::none()

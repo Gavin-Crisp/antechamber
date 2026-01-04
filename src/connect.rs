@@ -17,7 +17,8 @@ include_svg!(SETTINGS, "lucide/settings.svg");
 pub struct State {
     auth: Auth,
     guests: Option<Vec<Guest>>,
-    user: User,
+    cluster: usize,
+    user: usize,
     modal: Option<User>,
 }
 
@@ -40,11 +41,12 @@ pub enum Action {
 }
 
 impl State {
-    pub fn new(auth: Auth, user: User) -> (Self, Task<Message>) {
+    pub fn new(auth: Auth, cluster: usize, user: usize) -> (Self, Task<Message>) {
         (
             Self {
                 auth,
                 guests: None,
+                cluster,
                 user,
                 modal: None,
             },
@@ -69,7 +71,7 @@ impl State {
         listen_with(|_, _, _| None)
     }
 
-    pub fn update(&mut self, message: Message, _config: &mut Config) -> Action {
+    pub fn update(&mut self, message: Message, config: &Config) -> Action {
         match message {
             Message::Auth(auth) => {
                 self.auth = auth;
@@ -97,7 +99,7 @@ impl State {
             }
             Message::Logout => Action::Logout,
             Message::Settings => {
-                self.modal = Some(self.user.clone());
+                self.modal = Some(config.users[self.user].clone());
 
                 Action::None
             }
@@ -113,7 +115,7 @@ impl State {
         }
     }
 
-    pub fn view(&self, _config: &Config) -> Element<'_, Message> {
+    pub fn view<'a>(&'a self, config: &'a Config) -> Element<'a, Message> {
         let Some(guests) = &self.guests else {
             return center("Getting guests...").into();
         };
@@ -134,7 +136,7 @@ impl State {
             .width(Shrink);
 
         let page = column![
-            text(&self.user.name).size(25).width(Fill),
+            text(&config.users[self.user].name).size(25).width(Fill),
             hosts,
             logout_button,
             container(Option::<Element<Message>>::None).height(Fill),

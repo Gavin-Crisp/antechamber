@@ -1,5 +1,5 @@
 use crate::{
-    config::{AuthMethod, Config, User},
+    config::{AuthMethod, Config},
     include_svg,
     modal::modal,
     proxmox::Auth,
@@ -42,7 +42,11 @@ pub enum Message {
 
 #[derive(Debug)]
 pub enum Action {
-    Login(Auth, User),
+    Login {
+        auth: Auth,
+        cluster: usize,
+        user: usize,
+    },
     Run(Task<Message>),
     SaveConfig,
     None,
@@ -120,11 +124,16 @@ impl State {
                 })))
             }
             Message::Login(auth) => {
-                if let Some(user) = self.user
+                if let Some(cluster) = self.cluster
+                    && let Some(user) = self.user
                     && config.users[user].auth_method == AuthMethod::Password
                     && !self.password.is_empty()
                 {
-                    Action::Login(auth, config.users[user].clone())
+                    Action::Login {
+                        auth,
+                        cluster,
+                        user,
+                    }
                 } else {
                     Action::None
                 }
