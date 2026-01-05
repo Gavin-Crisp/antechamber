@@ -69,12 +69,13 @@ pub enum Address {
 #[derive(Clone, Debug, Default, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub name: String,
+    pub display_name: String,
     pub auth_method: AuthMethod,
 }
 
 impl Display for User {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.name.fmt(f)
+        self.display_name.fmt(f)
     }
 }
 

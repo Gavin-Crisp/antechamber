@@ -136,7 +136,9 @@ impl State {
             .width(Shrink);
 
         let page = column![
-            text(&config.users[self.user].name).size(25).width(Fill),
+            text(config.users[self.user].to_string())
+                .size(25)
+                .width(Fill),
             hosts,
             logout_button,
             container(Option::<Element<Message>>::None).height(Fill),

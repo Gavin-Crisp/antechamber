@@ -86,11 +86,13 @@ impl State {
             default_user: Some(0),
             users: vec![
                 User {
-                    name: "User1".to_owned(),
+                    name: "user1".to_owned(),
+                    display_name: "User 1".to_owned(),
                     auth_method: AuthMethod::Password,
                 },
                 User {
-                    name: "User2".to_owned(),
+                    name: "user2".to_owned(),
+                    display_name: "User 2".to_owned(),
                     auth_method: AuthMethod::ApiToken("PROXMOX-API-TOKEN".to_owned()),
                 },
             ],

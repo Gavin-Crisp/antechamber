@@ -110,6 +110,7 @@ impl State {
                 Action::None
             }
             Message::SubmitPassword => {
+                // TODO: give feedback on empty password
                 if self.user.is_some() && !self.password.is_empty() {
                     // TODO: replace with password login
                     Action::Run(Task::done(Message::Login(Auth {
@@ -246,6 +247,7 @@ mod user_modal {
 
     #[derive(Clone, Debug)]
     pub enum Message {
+        DisplayName(String),
         Username(String),
         Password,
         Api,
@@ -263,6 +265,10 @@ mod user_modal {
     impl State {
         pub fn update(&mut self, message: Message) -> Action {
             match message {
+                Message::DisplayName(display_name) => {
+                    self.user.display_name = display_name;
+                    Action::None
+                }
                 Message::Username(name) => {
                     self.user.name = name;
                     Action::None
@@ -283,6 +289,7 @@ mod user_modal {
                 }
                 Message::Close => Action::Close,
                 Message::Submit => {
+                    // TODO: give feedback on invalid submission
                     if self.is_valid() {
                         Action::Add(mem::take(&mut self.user))
                     } else {
@@ -293,7 +300,7 @@ mod user_modal {
         }
 
         pub const fn is_valid(&self) -> bool {
-            if self.user.name.is_empty() {
+            if self.user.display_name.is_empty() || self.user.name.is_empty() {
                 return false;
             }
 
@@ -307,6 +314,9 @@ mod user_modal {
         }
 
         pub fn view(&self) -> Element<'_, Message> {
+            let display_name = text_input("Display Name", self.user.display_name.as_str())
+                .on_input(Message::DisplayName);
+
             let username =
                 text_input("Username", self.user.name.as_str()).on_input(Message::Username);
 
@@ -332,7 +342,7 @@ mod user_modal {
                 AuthMethod::ApiToken(_) => None,
             };
 
-            container(column![username, buttons, auth_method, submit].align_x(Center))
+            container(column![display_name, username, buttons, auth_method, submit].align_x(Center))
                 .center(400)
                 .into()
         }
