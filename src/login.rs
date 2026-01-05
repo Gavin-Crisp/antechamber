@@ -6,7 +6,8 @@ use crate::{
 };
 use iced::{
     alignment::Horizontal, mouse::Interaction, widget::{
-        button, center, column, container, mouse_area, pick_list, row, stack, svg, text_input, Svg,
+        button, center, column, container, mouse_area, operation, pick_list, row, stack, svg, text_input,
+        Svg,
     }, Element,
     Fill,
     Shrink,
@@ -53,6 +54,8 @@ pub enum Action {
 }
 
 impl State {
+    const PASSWORD_ID: &str = "password";
+
     pub const fn new(config: &Config) -> Self {
         Self {
             modal: None,
@@ -75,11 +78,12 @@ impl State {
                 if self.user.is_none_or(|current| current != new) {
                     self.select_user(new);
                 }
-                Action::None
+                Action::Run(operation::focus(Self::PASSWORD_ID))
             }
             Message::ShowModal => {
-                self.modal = Some(user_modal::State::default());
-                Action::None
+                let (state, task) = user_modal::State::new();
+                self.modal = Some(state);
+                Action::Run(task.map(Message::Modal))
             }
             Message::Modal(message) => {
                 if let Some(state) = &mut self.modal {
@@ -196,7 +200,8 @@ impl State {
                     let password_input = text_input("Password", &self.password)
                         .on_input(Message::Password)
                         .on_submit(Message::SubmitPassword)
-                        .secure(self.secure_password);
+                        .secure(self.secure_password)
+                        .id(Self::PASSWORD_ID);
 
                     let eye_svg: Svg = svg(if self.secure_password {
                         OPEN_EYE.clone()
@@ -235,12 +240,12 @@ impl State {
 mod user_modal {
     use crate::config::{AuthMethod, User};
     use iced::{
-        widget::{button, column, container, row, text_input}, Center,
-        Element,
+        widget::{button, column, container, operation, row, text_input}, Center, Element,
+        Task,
     };
     use std::mem;
 
-    #[derive(Clone, Debug, Default)]
+    #[derive(Clone, Debug)]
     pub struct State {
         user: User,
     }
@@ -263,6 +268,17 @@ mod user_modal {
     }
 
     impl State {
+        const DISPLAY_NAME_ID: &str = "display_name";
+
+        pub fn new() -> (Self, Task<Message>) {
+            (
+                Self {
+                    user: User::default(),
+                },
+                operation::focus(Self::DISPLAY_NAME_ID),
+            )
+        }
+
         pub fn update(&mut self, message: Message) -> Action {
             match message {
                 Message::DisplayName(display_name) => {
@@ -315,7 +331,8 @@ mod user_modal {
 
         pub fn view(&self) -> Element<'_, Message> {
             let display_name = text_input("Display Name", self.user.display_name.as_str())
-                .on_input(Message::DisplayName);
+                .on_input(Message::DisplayName)
+                .id(Self::DISPLAY_NAME_ID);
 
             let username =
                 text_input("Username", self.user.name.as_str()).on_input(Message::Username);
