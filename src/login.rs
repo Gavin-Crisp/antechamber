@@ -63,8 +63,8 @@ pub enum Action {
 impl State {
     const PASSWORD_ID: &str = "password";
 
-    pub fn new(config: &Config) -> Self {
-        let user = config.default_user;
+    pub fn new(config: &Config, user: Option<usize>) -> Self {
+        let user = user.or(config.default_user);
 
         Self {
             modal: None,

@@ -99,7 +99,7 @@ impl State {
             viewer_args: vec![],
         };
 
-        let screen = Screen::Login(login::State::new(&config));
+        let screen = Screen::Login(login::State::new(&config, None));
 
         Self { config, screen }
     }
@@ -144,7 +144,11 @@ impl State {
             Message::Login(message) => {
                 if let Screen::Login(state) = &mut self.screen {
                     match state.update(message, &mut self.config) {
-                        login::Action::Login{auth, cluster, user} => {
+                        login::Action::Login {
+                            auth,
+                            cluster,
+                            user,
+                        } => {
                             let (state, task) = connect::State::new(auth, cluster, user);
                             self.screen = Screen::Connect(state);
                             task.map(Message::Connect)
@@ -163,8 +167,9 @@ impl State {
             Message::Connect(message) => {
                 if let Screen::Connect(state) = &mut self.screen {
                     match state.update(message, &self.config) {
-                        connect::Action::Logout => {
-                            self.screen = Screen::Login(login::State::new(&self.config));
+                        connect::Action::Logout(user) => {
+                            self.screen =
+                                Screen::Login(login::State::new(&self.config, Some(user)));
                             Task::none()
                         }
                         connect::Action::Run(task) => task.map(Message::Connect),

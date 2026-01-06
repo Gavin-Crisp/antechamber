@@ -35,7 +35,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub enum Action {
-    Logout,
+    Logout(usize),
     Run(Task<Message>),
     None,
 }
@@ -97,7 +97,7 @@ impl State {
                     conn_type: String::new(),
                 })))
             }
-            Message::Logout => Action::Logout,
+            Message::Logout => Action::Logout(self.user),
             Message::Settings => {
                 self.modal = Some(config.users[self.user].clone());
 
