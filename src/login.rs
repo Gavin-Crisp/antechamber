@@ -285,7 +285,7 @@ impl State {
 mod user_modal {
     use crate::config::{AuthMethod, User};
     use iced::{
-        widget::{button, column, container, operation, row, text_input}, Center, Element,
+        color, widget::{button, column, container, operation, row, text, text_input}, Center, Element,
         Task,
     };
     use std::mem;
@@ -293,6 +293,9 @@ mod user_modal {
     #[derive(Clone, Debug)]
     pub struct State {
         user: User,
+        display_name_error: bool,
+        username_error: bool,
+        api_error: bool,
     }
 
     #[derive(Clone, Debug)]
@@ -319,6 +322,9 @@ mod user_modal {
             (
                 Self {
                     user: User::default(),
+                    display_name_error: false,
+                    username_error: false,
+                    api_error: false,
                 },
                 operation::focus(Self::DISPLAY_NAME_ID),
             )
@@ -350,8 +356,7 @@ mod user_modal {
                 }
                 Message::Close => Action::Close,
                 Message::Submit => {
-                    // TODO: give feedback on invalid submission
-                    if self.is_valid() {
+                    if self.validate() {
                         Action::Add(mem::take(&mut self.user))
                     } else {
                         Action::None
@@ -360,27 +365,50 @@ mod user_modal {
             }
         }
 
-        pub const fn is_valid(&self) -> bool {
-            if self.user.display_name.is_empty() || self.user.name.is_empty() {
-                return false;
-            }
+        // TODO: Better input validation
+        pub const fn validate(&mut self) -> bool {
+            self.display_name_error = self.user.display_name.is_empty();
 
-            if let AuthMethod::ApiToken(token) = &self.user.auth_method
+            self.username_error = self.user.name.is_empty();
+
+            self.api_error = if let AuthMethod::ApiToken(token) = &self.user.auth_method
                 && token.is_empty()
             {
-                return false;
-            }
+                true
+            } else {
+                false
+            };
 
-            true
+            !(self.display_name_error || self.username_error || self.api_error)
         }
 
         pub fn view(&self) -> Element<'_, Message> {
-            let display_name = text_input("Display Name", self.user.display_name.as_str())
-                .on_input(Message::DisplayName)
-                .id(Self::DISPLAY_NAME_ID);
+            macro_rules! with_error {
+                ($element:expr, $condition:expr, $message:expr) => {
+                    column![
+                        $element,
+                        if $condition {
+                            Some(text($message).color(color!(0xff_00_00)))
+                        } else {
+                            None
+                        }
+                    ]
+                };
+            }
 
-            let username =
-                text_input("Username", self.user.name.as_str()).on_input(Message::Username);
+            let display_name = with_error!(
+                text_input("Display Name", self.user.display_name.as_str())
+                    .on_input(Message::DisplayName)
+                    .id(Self::DISPLAY_NAME_ID),
+                self.display_name_error,
+                "Invalid display name"
+            );
+
+            let username = with_error!(
+                text_input("Username", self.user.name.as_str()).on_input(Message::Username),
+                self.username_error,
+                "Invalid username"
+            );
 
             let password = button("Password");
             let api = button("API Token");
@@ -392,11 +420,13 @@ mod user_modal {
 
             let auth_method = match &self.user.auth_method {
                 AuthMethod::Password => None,
-                AuthMethod::ApiToken(token) => Some(
+                AuthMethod::ApiToken(token) => Some(with_error!(
                     text_input("API Token", token.as_str())
                         .on_input(Message::Token)
                         .on_submit(Message::Submit),
-                ),
+                    self.api_error,
+                    "Invalid API token"
+                )),
             };
 
             let submit = match &self.user.auth_method {
