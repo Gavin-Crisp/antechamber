@@ -5,10 +5,11 @@ use crate::{
     proxmox::Auth,
 };
 use iced::{
-    alignment::Horizontal, mouse::Interaction, widget::{
-        button, center, column, container, mouse_area, operation, pick_list, row, stack, svg, text_input,
-        Svg,
-    }, Element,
+    alignment::Horizontal, color, mouse::Interaction, widget::{
+        button, center, column, container, mouse_area, operation, pick_list, row, stack, svg, text,
+        text_input, Svg,
+    },
+    Element,
     Fill,
     Shrink,
     Task,
@@ -23,8 +24,14 @@ pub struct State {
     modal: Option<user_modal::State>,
     cluster: Option<usize>,
     user: Option<usize>,
-    password: String,
-    secure_password: bool,
+    password: Option<Password>,
+}
+
+#[derive(Debug)]
+struct Password {
+    text: String,
+    secure: bool,
+    error: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -56,13 +63,21 @@ pub enum Action {
 impl State {
     const PASSWORD_ID: &str = "password";
 
-    pub const fn new(config: &Config) -> Self {
+    pub fn new(config: &Config) -> Self {
+        let user = config.default_user;
+
         Self {
             modal: None,
             cluster: config.default_cluster,
-            user: config.default_user,
-            password: String::new(),
-            secure_password: true,
+            user,
+            password: user.and_then(|idx| match config.users[idx].auth_method {
+                AuthMethod::Password => Some(Password {
+                    text: String::new(),
+                    secure: true,
+                    error: false,
+                }),
+                AuthMethod::ApiToken(_) => None,
+            }),
         }
     }
 
@@ -76,7 +91,7 @@ impl State {
             }
             Message::SelectUser(new) => {
                 if self.user.is_none_or(|current| current != new) {
-                    self.select_user(new);
+                    self.select_user(config, new);
                 }
                 Action::Run(operation::focus(Self::PASSWORD_ID))
             }
@@ -91,7 +106,7 @@ impl State {
                         user_modal::Action::Add(user) => {
                             self.modal = None;
                             config.users.push(user);
-                            self.select_user(config.users.len() - 1);
+                            self.select_user(config, config.users.len() - 1);
 
                             return Action::SaveConfig;
                         }
@@ -101,26 +116,36 @@ impl State {
                 }
                 Action::None
             }
-            Message::Password(password) => {
-                self.password = password;
+            Message::Password(text) => {
+                if let Some(password) = &mut self.password {
+                    password.text = text;
+                }
                 Action::None
             }
             Message::ShowPassword => {
-                self.secure_password = false;
+                if let Some(password) = &mut self.password {
+                    password.secure = false;
+                }
                 Action::None
             }
             Message::HidePassword => {
-                self.secure_password = true;
+                if let Some(password) = &mut self.password {
+                    password.secure = true;
+                }
                 Action::None
             }
             Message::SubmitPassword => {
-                // TODO: give feedback on empty password
-                if self.user.is_some() && !self.password.is_empty() {
-                    // TODO: replace with password login
-                    Action::Run(Task::done(Message::Login(Auth {
-                        csrf: String::new(),
-                        ticket: String::new(),
-                    })))
+                if let Some(password) = &mut self.password {
+                    if self.user.is_some() && !password.text.is_empty() {
+                        // TODO: replace with password login
+                        Action::Run(Task::done(Message::Login(Auth {
+                            csrf: String::new(),
+                            ticket: String::new(),
+                        })))
+                    } else {
+                        password.error = true;
+                        Action::None
+                    }
                 } else {
                     Action::None
                 }
@@ -152,9 +177,16 @@ impl State {
         }
     }
 
-    fn select_user(&mut self, user: usize) {
+    fn select_user(&mut self, config: &Config, user: usize) {
         self.user = Some(user);
-        self.password.clear();
+        self.password = match config.users[user].auth_method {
+            AuthMethod::Password => Some(Password {
+                text: String::new(),
+                secure: true,
+                error: false,
+            }),
+            AuthMethod::ApiToken(_) => None,
+        };
     }
 
     pub fn view<'a>(&'a self, config: &'a Config) -> Element<'a, Message> {
@@ -194,16 +226,17 @@ impl State {
 
         let user = row![user_select, add_user];
 
-        let auth: Option<Element<Message>> =
-            self.user.map(|user| match config.users[user].auth_method {
-                AuthMethod::Password => {
-                    let password_input = text_input("Password", &self.password)
+        let auth: Option<Element<Message>> = self.user.map(|_| {
+            self.password.as_ref().map_or_else(
+                || button("Login").on_press(Message::SubmitApi).into(),
+                |p| {
+                    let password_input = text_input("Password", &p.text)
                         .on_input(Message::Password)
                         .on_submit(Message::SubmitPassword)
-                        .secure(self.secure_password)
+                        .secure(p.secure)
                         .id(Self::PASSWORD_ID);
 
-                    let eye_svg: Svg = svg(if self.secure_password {
+                    let eye_svg: Svg = svg(if p.secure {
                         OPEN_EYE.clone()
                     } else {
                         CLOSED_EYE.clone()
@@ -214,10 +247,22 @@ impl State {
                             .on_release(Message::HidePassword)
                             .interaction(Interaction::Pointer);
 
-                    row![password_input, show_button].height(Shrink).into()
-                }
-                AuthMethod::ApiToken(_) => button("Login").on_press(Message::SubmitApi).into(),
-            });
+                    let error_message = if p.error {
+                        Some(container(
+                            text("Empty password is not valid").color(color!(0xff_00_00)),
+                        ))
+                    } else {
+                        None
+                    };
+
+                    column![
+                        row![password_input, show_button].height(Shrink),
+                        error_message
+                    ]
+                    .into()
+                },
+            )
+        });
 
         let input_box = column![cluster_select, user, auth]
             .padding(10)
