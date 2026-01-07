@@ -1,8 +1,14 @@
 use serde::Deserialize;
 use std::fmt::{self, Display};
 
+#[derive(Clone, Debug)]
+pub enum Auth {
+    ApiToken(String),
+    Ticket(Ticket),
+}
+
 #[derive(Clone, Debug, Deserialize)]
-pub struct Auth {
+pub struct Ticket {
     pub ticket: String,
     #[serde(rename = "CSRFPreventionToken")]
     pub csrf: String,

@@ -2,7 +2,7 @@ use crate::{
     config::{Config, User},
     include_svg,
     modal::modal,
-    proxmox::{Auth, Guest, GuestKind, SpiceConfig},
+    proxmox::{Auth, Guest, GuestKind, SpiceConfig, Ticket},
 };
 use iced::{
     alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill,
@@ -24,7 +24,7 @@ pub struct State {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    Auth(Auth),
+    Ticket(Ticket),
     GetGuests(Vec<Guest>),
     SpiceConfig(SpiceConfig),
     ConnectHost(u32),
@@ -64,17 +64,21 @@ impl State {
         )
     }
 
-    #[allow(clippy::unused_self)]
     pub fn subscription(&self) -> Subscription<Message> {
-        // TODO: use this subscription to keepalive auth session
-        // This is probably overkill
-        listen_with(|_, _, _| None)
+        match &self.auth {
+            Auth::ApiToken(_) => Subscription::none(),
+            Auth::Ticket(_) => {
+                // TODO: use this subscription to keepalive auth session
+                // This is probably overkill
+                listen_with(|_, _, _| None)
+            }
+        }
     }
 
     pub fn update(&mut self, message: Message, config: &Config) -> Action {
         match message {
-            Message::Auth(auth) => {
-                self.auth = auth;
+            Message::Ticket(ticket) => {
+                self.auth = Auth::Ticket(ticket);
 
                 Action::None
             }

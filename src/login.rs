@@ -2,7 +2,7 @@ use crate::{
     config::{AuthMethod, Config},
     include_svg,
     modal::modal,
-    proxmox::Auth,
+    proxmox::{Auth, Ticket},
 };
 use iced::{
     alignment::Horizontal, color, mouse::Interaction, widget::{
@@ -138,10 +138,10 @@ impl State {
                 if let Some(password) = &mut self.password {
                     if self.user.is_some() && !password.text.is_empty() {
                         // TODO: replace with password login
-                        Action::Run(Task::done(Message::Login(Auth {
+                        Action::Run(Task::done(Message::Login(Auth::Ticket(Ticket {
                             csrf: String::new(),
                             ticket: String::new(),
-                        })))
+                        }))))
                     } else {
                         password.error = true;
                         Action::None
@@ -153,10 +153,7 @@ impl State {
             Message::SubmitApi => {
                 if self.user.is_some() {
                     // TODO: replace with api login
-                    Action::Run(Task::done(Message::Login(Auth {
-                        ticket: String::new(),
-                        csrf: String::new(),
-                    })))
+                    Action::Run(Task::done(Message::Login(Auth::ApiToken(String::new()))))
                 } else {
                     Action::None
                 }
