@@ -217,11 +217,12 @@ impl State {
         )
         .placeholder("Select user");
 
-        let add_user = button(svg(ADD_USER.clone()))
+        let add_user = button(center(svg(ADD_USER.clone())))
+            .on_press(Message::ShowModal)
             .width(Shrink)
-            .on_press(Message::ShowModal);
+            .padding(5);
 
-        let user = row![user_select, add_user];
+        let user = row![user_select, add_user].height(Shrink);
 
         let auth: Option<Element<Message>> = self.user.map(|_| {
             self.password.as_ref().map_or_else(
