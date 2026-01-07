@@ -1,7 +1,6 @@
 use crate::{
     config::{AuthMethod, Config},
     include_svg,
-    modal::modal,
     proxmox::{Auth, Ticket},
 };
 use iced::{
@@ -271,17 +270,19 @@ impl State {
 
         stack![
             center(input_box),
-            self.modal.as_ref().map(|state| modal(
-                state.view().map(Message::Modal),
-                Message::Modal(user_modal::Message::Close)
-            )),
+            self.modal
+                .as_ref()
+                .map(|state| state.view().map(Message::Modal)),
         ]
         .into()
     }
 }
 
 mod user_modal {
-    use crate::config::{AuthMethod, User};
+    use crate::{
+        config::{AuthMethod, User},
+        modal::modal,
+    };
     use iced::{
         color, widget::{button, column, container, operation, row, text, text_input}, Center, Element,
         Task,
@@ -432,9 +433,14 @@ mod user_modal {
                 AuthMethod::ApiToken(_) => None,
             };
 
-            container(column![display_name, username, buttons, auth_method, submit].align_x(Center))
-                .center(400)
-                .into()
+            modal(
+                container(
+                    column![display_name, username, buttons, auth_method, submit].align_x(Center),
+                )
+                .center(400),
+                Message::Close,
+            )
+            .into()
         }
     }
 }

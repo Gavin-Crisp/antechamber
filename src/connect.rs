@@ -1,7 +1,6 @@
 use crate::{
     config::{Config, User},
     include_svg,
-    modal::modal,
     proxmox::{Auth, Guest, GuestKind, SpiceConfig, Ticket},
 };
 use iced::{
@@ -159,10 +158,9 @@ impl State {
 
         stack![
             page,
-            self.modal.as_ref().map(|user| modal(
-                settings_modal::view(user).map(Message::Modal),
-                Message::Modal(settings_modal::Message::Close),
-            ))
+            self.modal
+                .as_ref()
+                .map(|user| settings_modal::view(user).map(Message::Modal))
         ]
         .width(Fill)
         .into()
@@ -182,7 +180,7 @@ fn view_guest(guest: &Guest) -> Element<'_, Message> {
 }
 
 mod settings_modal {
-    use crate::config::User;
+    use crate::{config::User, modal::modal};
     use iced::{widget::container, Element};
 
     #[derive(Clone, Debug)]
@@ -202,6 +200,6 @@ mod settings_modal {
     }
 
     pub fn view(user: &User) -> Element<'_, Message> {
-        container(user.name.as_str()).center(400).into()
+        modal(container(user.name.as_str()).center(400), Message::Close).into()
     }
 }
