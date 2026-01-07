@@ -5,7 +5,7 @@ use crate::{
     proxmox::{Auth, Guest, GuestKind, SpiceConfig, Ticket},
 };
 use iced::{
-    alignment::Horizontal, event::listen_with, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill,
+    alignment::Horizontal, time::{every, minutes}, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill,
     Shrink,
     Subscription,
     Task,
@@ -68,9 +68,14 @@ impl State {
         match &self.auth {
             Auth::ApiToken(_) => Subscription::none(),
             Auth::Ticket(_) => {
-                // TODO: use this subscription to keepalive auth session
-                // This is probably overkill
-                listen_with(|_, _, _| None)
+                // Tickets have a lifetime of 2 hours, so they have to be renewed before then
+                every(minutes(110)).map(|_| {
+                    // TODO: add api request
+                    Message::Ticket(Ticket {
+                        ticket: String::new(),
+                        csrf: String::new(),
+                    })
+                })
             }
         }
     }
