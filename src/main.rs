@@ -4,7 +4,7 @@ mod login;
 mod modal;
 mod proxmox;
 
-use crate::config::{AuthMethod, Cluster, Config, User};
+use crate::config::{AuthMethod, Cluster, Config, ConfigManager, User};
 use iced::{
     event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
     window::{Level, Settings},
@@ -55,7 +55,7 @@ fn main() -> iced::Result {
 
 #[derive(Debug)]
 struct State {
-    config: Config,
+    config_manager: ConfigManager,
     screen: Screen,
 }
 
@@ -101,7 +101,10 @@ impl State {
 
         let screen = Screen::Login(login::State::new(&config, None));
 
-        Self { config, screen }
+        Self {
+            config_manager: ConfigManager::from_config(config).expect("Let's assume this is fine"),
+            screen,
+        }
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -143,7 +146,7 @@ impl State {
         match message {
             Message::Login(message) => {
                 if let Screen::Login(state) = &mut self.screen {
-                    match state.update(message, &mut self.config) {
+                    match state.update(message, &mut self.config_manager.config) {
                         login::Action::Login {
                             auth,
                             cluster,
@@ -155,7 +158,7 @@ impl State {
                         }
                         login::Action::Run(task) => task.map(Message::Login),
                         login::Action::SaveConfig => {
-                            let _ = self.config.store();
+                            let _ = self.config_manager.save();
                             Task::none()
                         }
                         login::Action::None => Task::none(),
@@ -166,10 +169,12 @@ impl State {
             }
             Message::Connect(message) => {
                 if let Screen::Connect(state) = &mut self.screen {
-                    match state.update(message, &self.config) {
+                    match state.update(message, &self.config_manager.config) {
                         connect::Action::Logout(user) => {
-                            self.screen =
-                                Screen::Login(login::State::new(&self.config, Some(user)));
+                            self.screen = Screen::Login(login::State::new(
+                                &self.config_manager.config,
+                                Some(user),
+                            ));
                             Task::none()
                         }
                         connect::Action::Run(task) => task.map(Message::Connect),
@@ -186,8 +191,10 @@ impl State {
 
     pub fn view(&self) -> Element<'_, Message> {
         let screen = match &self.screen {
-            Screen::Login(state) => state.view(&self.config).map(Message::Login),
-            Screen::Connect(state) => state.view(&self.config).map(Message::Connect),
+            Screen::Login(state) => state.view(&self.config_manager.config).map(Message::Login),
+            Screen::Connect(state) => state
+                .view(&self.config_manager.config)
+                .map(Message::Connect),
         };
 
         if cfg!(feature = "dev_mode") {
