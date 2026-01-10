@@ -16,7 +16,7 @@ unwrap_used = "deny"
 cargo_common_metadata = "deny"
 
 [dependencies]
-iced = { version = "0.14.*", features = ["default", "svg", "tokio"] }
+iced = { version = "0.14.*", features = ["advanced", "default", "svg", "tokio"] }
 serde = { version = "1.0.*", features = ["derive"] }
 directories = "6.0.*"
 serde_yaml = "0.9.33"
