@@ -2,6 +2,7 @@ use crate::{
     config::{AuthMethod, Config},
     include_svg,
     proxmox::{Auth, Ticket},
+    styles::ui_box,
 };
 use iced::{
     alignment::Horizontal, color, mouse::Interaction, widget::{
@@ -199,7 +200,8 @@ impl State {
                 )
             },
         )
-        .placeholder("Select cluster");
+        .placeholder("Select cluster")
+        .width(Fill);
 
         let user_select = pick_list(
             config.users.as_slice(),
@@ -214,11 +216,12 @@ impl State {
                 )
             },
         )
-        .placeholder("Select user");
+        .placeholder("Select user")
+        .width(Fill);
 
         let add_user = button(center(svg(ADD_USER.clone())))
             .on_press(Message::ShowModal)
-            .width(Shrink)
+            .width(35)
             .padding(5);
 
         let user = row![user_select, add_user].height(Shrink);
@@ -261,12 +264,14 @@ impl State {
             )
         });
 
-        let input_box = column![cluster_select, user, auth]
-            .padding(10)
-            .spacing(10)
-            .align_x(Horizontal::Center)
-            .width(300)
-            .padding(10);
+        let input_box = container(
+            column![cluster_select, user, auth]
+                .spacing(10)
+                .align_x(Horizontal::Center),
+        )
+        .width(300)
+        .padding(20)
+        .style(ui_box);
 
         stack![
             center(input_box),
@@ -281,6 +286,7 @@ impl State {
 mod user_modal {
     use crate::{
         config::{AuthMethod, User},
+        login::ui_box,
         modal::modal,
     };
     use iced::{
@@ -440,6 +446,7 @@ mod user_modal {
                 .center(400),
                 Message::Close,
             )
+            .style(ui_box)
             .into()
         }
     }

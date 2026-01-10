@@ -2,6 +2,7 @@ use crate::{
     config::{Config, User},
     include_svg,
     proxmox::{Auth, Guest, GuestKind, SpiceConfig, Ticket},
+    styles::ui_box,
 };
 use iced::{
     alignment::Horizontal, time::{every, minutes}, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill,
@@ -143,21 +144,24 @@ impl State {
             .on_press(Message::Settings)
             .width(Shrink);
 
-        let page = column![
-            text(config.users[self.user].to_string())
-                .size(25)
-                .width(Fill),
-            hosts,
-            logout_button,
-            container(Option::<Element<Message>>::None).height(Fill),
-            container(settings_button).width(Fill)
-        ]
+        let menu = container(
+            column![
+                text(config.users[self.user].to_string())
+                    .size(25)
+                    .width(Fill),
+                hosts,
+                logout_button,
+                container(Option::<Element<Message>>::None).height(Fill),
+                container(settings_button).width(Fill)
+            ]
+            .align_x(Horizontal::Center),
+        )
         .width(Shrink)
-        .align_x(Horizontal::Center)
-        .padding([25, 50]);
+        .padding([25, 50])
+        .style(ui_box);
 
         stack![
-            page,
+            container(menu).padding(20),
             self.modal
                 .as_ref()
                 .map(|user| settings_modal::view(user).map(Message::Modal))
@@ -180,7 +184,7 @@ fn view_guest(guest: &Guest) -> Element<'_, Message> {
 }
 
 mod settings_modal {
-    use crate::{config::User, modal::modal};
+    use crate::{config::User, modal::modal, styles::ui_box};
     use iced::{widget::container, Element};
 
     #[derive(Clone, Debug)]
@@ -200,6 +204,8 @@ mod settings_modal {
     }
 
     pub fn view(user: &User) -> Element<'_, Message> {
-        modal(container(user.name.as_str()).center(400), Message::Close).into()
+        modal(container(user.name.as_str()).center(400), Message::Close)
+            .style(ui_box)
+            .into()
     }
 }

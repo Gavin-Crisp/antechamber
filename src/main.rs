@@ -3,14 +3,15 @@ mod connect;
 mod login;
 mod modal;
 mod proxmox;
+mod styles;
 
 use crate::config::{AuthMethod, Cluster, Config, ConfigManager, User};
 use iced::{
-    event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation,
-    window::{Level, Settings},
+    event::{self, listen_with, Status}, keyboard::{self, key::Named, Key}, widget::operation, window::{Level, Settings},
     Element,
     Subscription,
     Task,
+    Theme,
 };
 
 #[cfg(all(feature = "dev_mode", not(debug_assertions)))]
@@ -35,8 +36,9 @@ pub const NAME_LOWER: &str = "antechamber";
 
 fn main() -> iced::Result {
     iced::application(State::new, State::update, State::view)
-        .subscription(State::subscription)
         .title(NAME_TITLE)
+        .theme(State::theme)
+        .subscription(State::subscription)
         .window(Settings {
             // Not strictly needed for intended use case, but I'll probably set one eventually
             icon: None,
@@ -57,6 +59,7 @@ fn main() -> iced::Result {
 struct State {
     config_manager: ConfigManager,
     screen: Screen,
+    theme: Theme,
 }
 
 #[derive(Debug)]
@@ -104,7 +107,12 @@ impl State {
         Self {
             config_manager: ConfigManager::from_config(config).expect("Let's assume this is fine"),
             screen,
+            theme: Theme::GruvboxDark
         }
+    }
+
+    pub fn theme(&self) -> Theme {
+        self.theme.clone()
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
