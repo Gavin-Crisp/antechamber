@@ -34,6 +34,8 @@ macro_rules! include_svg {
 pub const NAME_TITLE: &str = "Antechamber";
 pub const NAME_LOWER: &str = "antechamber";
 
+// TODO: Add default guest user that is used when none is selected
+
 fn main() -> iced::Result {
     iced::application(State::new, State::update, State::view)
         .title(NAME_TITLE)
