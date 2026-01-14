@@ -101,6 +101,7 @@ pub enum Address {
     Dns(String),
 }
 
+// TODO: api token auth does not require username; this should be reflected
 #[derive(Clone, Debug, Default, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub name: String,

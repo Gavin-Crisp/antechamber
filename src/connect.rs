@@ -5,10 +5,10 @@ use crate::{
     styles::ui_box,
 };
 use iced::{
-    alignment::Horizontal, time::{every, minutes}, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill,
-    Shrink,
+    alignment::Horizontal, time::{every, minutes}, widget::{button, center, column, container, scrollable, stack, svg, text}, Center, Element, Fill, Shrink,
     Subscription,
     Task,
+    Theme,
 };
 
 include_svg!(SETTINGS, "lucide/settings.svg");
@@ -140,9 +140,11 @@ impl State {
         .padding([50, 20]);
 
         let logout_button = button("Logout").on_press(Message::Logout);
-        let settings_button = button(svg(SETTINGS.clone()))
-            .on_press(Message::Settings)
-            .width(Shrink);
+        let settings_button = button(svg(SETTINGS.clone()).style(|theme: &Theme, _| svg::Style {
+            color: Some(theme.extended_palette().primary.base.text),
+        }))
+        .on_press(Message::Settings)
+        .width(Shrink);
 
         let menu = container(
             column![
@@ -185,6 +187,7 @@ fn view_guest(guest: &Guest) -> Element<'_, Message> {
 
 mod settings_modal {
     use crate::{config::User, modal::modal, styles::ui_box};
+    use iced::widget::svg;
     use iced::{widget::container, Element};
 
     #[derive(Clone, Debug)]
@@ -206,6 +209,9 @@ mod settings_modal {
     pub fn view(user: &User) -> Element<'_, Message> {
         modal(container(user.name.as_str()).center(400), Message::Close)
             .style(ui_box)
+            .svg_style(|theme, _| svg::Style {
+                color: Some(theme.extended_palette().primary.base.text),
+            })
             .into()
     }
 }

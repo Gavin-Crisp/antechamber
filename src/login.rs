@@ -5,14 +5,13 @@ use crate::{
     styles::ui_box,
 };
 use iced::{
-    alignment::Horizontal, color, mouse::Interaction, widget::{
+    alignment::Horizontal, mouse::Interaction, widget::{
         button, center, column, container, mouse_area, operation, pick_list, row, stack, svg, text,
         text_input, Svg,
-    },
-    Element,
-    Fill,
+    }, Element, Fill,
     Shrink,
     Task,
+    Theme,
 };
 
 include_svg!(OPEN_EYE, "lucide/eye.svg");
@@ -240,6 +239,9 @@ impl State {
                         OPEN_EYE.clone()
                     } else {
                         CLOSED_EYE.clone()
+                    })
+                    .style(|theme: &Theme, _| svg::Style {
+                        color: Some(theme.extended_palette().background.base.text),
                     });
                     let show_button =
                         mouse_area(container(eye_svg).center_x(35).center_y(Fill).padding(5))
@@ -248,9 +250,11 @@ impl State {
                             .interaction(Interaction::Pointer);
 
                     let error_message = if p.error {
-                        Some(container(
-                            text("Empty password is not valid").color(color!(0xff_00_00)),
-                        ))
+                        Some(container(text("Empty password is not valid").style(
+                            |theme: &Theme| text::Style {
+                                color: Some(theme.palette().danger),
+                            },
+                        )))
                     } else {
                         None
                     };
@@ -290,8 +294,8 @@ mod user_modal {
         modal::modal,
     };
     use iced::{
-        color, widget::{button, column, container, operation, row, text, text_input}, Center, Element,
-        Task,
+        widget::{button, column, container, operation, row, svg, text, text_input}, Center, Element, Task,
+        Theme,
     };
     use std::mem;
 
@@ -393,7 +397,9 @@ mod user_modal {
                     column![
                         $element,
                         if $condition {
-                            Some(text($message).color(color!(0xff_00_00)))
+                            Some(text($message).style(|theme: &Theme| text::Style {
+                                color: Some(theme.palette().danger),
+                            }))
                         } else {
                             None
                         }
@@ -446,7 +452,11 @@ mod user_modal {
                 .center(400),
                 Message::Close,
             )
+            .padding(20)
             .style(ui_box)
+            .svg_style(|theme, _| svg::Style {
+                color: Some(theme.extended_palette().primary.base.text),
+            })
             .into()
         }
     }

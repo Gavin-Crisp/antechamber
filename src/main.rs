@@ -61,6 +61,7 @@ fn main() -> iced::Result {
 struct State {
     config_manager: ConfigManager,
     screen: Screen,
+    // TODO: integrate into config
     theme: Theme,
 }
 
@@ -109,7 +110,7 @@ impl State {
         Self {
             config_manager: ConfigManager::from_config(config).expect("Let's assume this is fine"),
             screen,
-            theme: Theme::GruvboxDark
+            theme: Theme::Ferra
         }
     }
 
