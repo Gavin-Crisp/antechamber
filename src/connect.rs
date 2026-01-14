@@ -207,11 +207,14 @@ mod settings_modal {
     }
 
     pub fn view(user: &User) -> Element<'_, Message> {
-        modal(container(user.name.as_str()).center(400), Message::Close)
-            .style(ui_box)
-            .svg_style(|theme, _| svg::Style {
-                color: Some(theme.extended_palette().primary.base.text),
-            })
-            .into()
+        modal(
+            container(user.display_name.as_str()).center(400),
+            Message::Close,
+        )
+        .style(ui_box)
+        .svg_style(|theme, _| svg::Style {
+            color: Some(theme.extended_palette().primary.base.text),
+        })
+        .into()
     }
 }

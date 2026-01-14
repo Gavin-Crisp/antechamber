@@ -70,7 +70,7 @@ impl State {
             cluster: config.default_cluster,
             user,
             password: user.and_then(|idx| match config.users[idx].auth_method {
-                AuthMethod::Password => Some(Password {
+                AuthMethod::Password { .. } => Some(Password {
                     text: String::new(),
                     secure: true,
                     error: false,
@@ -176,7 +176,7 @@ impl State {
     fn select_user(&mut self, config: &Config, user: usize) {
         self.user = Some(user);
         self.password = match config.users[user].auth_method {
-            AuthMethod::Password => Some(Password {
+            AuthMethod::Password { .. } => Some(Password {
                 text: String::new(),
                 secure: true,
                 error: false,
@@ -210,7 +210,7 @@ impl State {
                     config
                         .users
                         .iter()
-                        .position(|u| u.name == user.name)
+                        .position(|u| u.display_name == user.display_name)
                         .expect("user is in users"),
                 )
             },
@@ -330,7 +330,12 @@ mod user_modal {
         pub fn new() -> (Self, Task<Message>) {
             (
                 Self {
-                    user: User::default(),
+                    user: User {
+                        display_name: String::new(),
+                        auth_method: AuthMethod::Password {
+                            username: String::new(),
+                        },
+                    },
                     display_name_error: false,
                     username_error: false,
                     api_error: false,
@@ -343,23 +348,32 @@ mod user_modal {
             match message {
                 Message::DisplayName(display_name) => {
                     self.user.display_name = display_name;
+                    self.display_name_error = false;
                     Action::None
                 }
                 Message::Username(name) => {
-                    self.user.name = name;
+                    if let AuthMethod::Password { username } = &mut self.user.auth_method {
+                        *username = name;
+                        self.username_error = false;
+                    }
                     Action::None
                 }
                 Message::Password => {
-                    self.user.auth_method = AuthMethod::Password;
+                    self.user.auth_method = AuthMethod::Password {
+                        username: String::new(),
+                    };
+                    self.username_error = false;
                     Action::None
                 }
                 Message::Api => {
                     self.user.auth_method = AuthMethod::ApiToken(String::new());
+                    self.api_error = false;
                     Action::None
                 }
                 Message::Token(token) => {
                     if let AuthMethod::ApiToken(curr_token) = &mut self.user.auth_method {
                         *curr_token = token;
+                        self.api_error = false;
                     }
                     Action::None
                 }
@@ -378,7 +392,13 @@ mod user_modal {
         pub const fn validate(&mut self) -> bool {
             self.display_name_error = self.user.display_name.is_empty();
 
-            self.username_error = self.user.name.is_empty();
+            self.username_error = if let AuthMethod::Password { username } = &self.user.auth_method
+                && username.is_empty()
+            {
+                true
+            } else {
+                false
+            };
 
             self.api_error = if let AuthMethod::ApiToken(token) = &self.user.auth_method
                 && token.is_empty()
@@ -410,46 +430,39 @@ mod user_modal {
             let display_name = with_error!(
                 text_input("Display Name", self.user.display_name.as_str())
                     .on_input(Message::DisplayName)
+                    .on_submit(Message::Submit)
                     .id(Self::DISPLAY_NAME_ID),
                 self.display_name_error,
                 "Invalid display name"
-            );
-
-            let username = with_error!(
-                text_input("Username", self.user.name.as_str()).on_input(Message::Username),
-                self.username_error,
-                "Invalid username"
             );
 
             let password = button("Password");
             let api = button("API Token");
 
             let buttons = match self.user.auth_method {
-                AuthMethod::Password => row![password, api.on_press(Message::Api)],
+                AuthMethod::Password { .. } => row![password, api.on_press(Message::Api)],
                 AuthMethod::ApiToken(_) => row![password.on_press(Message::Password), api],
             };
 
             let auth_method = match &self.user.auth_method {
-                AuthMethod::Password => None,
-                AuthMethod::ApiToken(token) => Some(with_error!(
+                AuthMethod::Password { username } => with_error!(
+                    text_input("Username", username.as_str())
+                        .on_input(Message::Username)
+                        .on_submit(Message::Submit),
+                    self.username_error,
+                    "Invalid username"
+                ),
+                AuthMethod::ApiToken(token) => with_error!(
                     text_input("API Token", token.as_str())
                         .on_input(Message::Token)
                         .on_submit(Message::Submit),
                     self.api_error,
                     "Invalid API token"
-                )),
-            };
-
-            let submit = match &self.user.auth_method {
-                AuthMethod::Password => Some(button("Submit").on_press(Message::Submit)),
-                AuthMethod::ApiToken(_) => None,
+                ),
             };
 
             modal(
-                container(
-                    column![display_name, username, buttons, auth_method, submit].align_x(Center),
-                )
-                .center(400),
+                container(column![display_name, buttons, auth_method].align_x(Center)).center(400),
                 Message::Close,
             )
             .padding(20)

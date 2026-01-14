@@ -101,10 +101,8 @@ pub enum Address {
     Dns(String),
 }
 
-// TODO: api token auth does not require username; this should be reflected
 #[derive(Clone, Debug, Default, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
-    pub name: String,
     pub display_name: String,
     pub auth_method: AuthMethod,
 }
@@ -115,9 +113,16 @@ impl Display for User {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AuthMethod {
-    #[default]
-    Password,
+    Password { username: String },
     ApiToken(String),
+}
+
+impl Default for AuthMethod {
+    fn default() -> Self {
+        Self::Password {
+            username: String::default(),
+        }
+    }
 }

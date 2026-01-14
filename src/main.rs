@@ -92,12 +92,12 @@ impl State {
             default_user: Some(0),
             users: vec![
                 User {
-                    name: "user1".to_owned(),
                     display_name: "User 1".to_owned(),
-                    auth_method: AuthMethod::Password,
+                    auth_method: AuthMethod::Password {
+                        username: "user1".to_owned(),
+                    },
                 },
                 User {
-                    name: "user2".to_owned(),
                     display_name: "User 2".to_owned(),
                     auth_method: AuthMethod::ApiToken("PROXMOX-API-TOKEN".to_owned()),
                 },
@@ -110,7 +110,7 @@ impl State {
         Self {
             config_manager: ConfigManager::from_config(config).expect("Let's assume this is fine"),
             screen,
-            theme: Theme::Ferra
+            theme: Theme::Ferra,
         }
     }
 
